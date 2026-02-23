@@ -21,7 +21,7 @@ const ADMIN_ROUTES = [
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
-export function middleware(request) {
+export function proxy(request) {
   const { pathname } = request.nextUrl;
 
   // Get token from cookie (set this when user logs in — see AuthContext note below)
