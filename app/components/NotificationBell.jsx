@@ -5,7 +5,7 @@ import {
   fetchNotifications,
   fetchUnreadNotifications,
   markAllNotificationsRead,
-} from "../services/notificationService";
+} from "../../services/notificationService";
 
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);

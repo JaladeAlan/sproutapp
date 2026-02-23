@@ -7,7 +7,7 @@ import {
   fetchNotifications,
   markAllNotificationsRead,
   markNotificationRead,
-} from "../services/notificationService";
+} from "../../services/notificationService";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState([]);

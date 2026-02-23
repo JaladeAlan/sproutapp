@@ -1,5 +1,5 @@
 import "./globals.css";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "../context/AuthContext";
 import ToasterProvider from "./components/ToasterProvider";
 import NavigationProgress from "./components/NavigationProgress";
 

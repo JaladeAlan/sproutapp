@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Gift, CheckCircle } from "lucide-react";
-import api from "../utils/api";
+import api from "../../utils/api";
 
 export default function Register() {
   const [form, setForm] = useState({
