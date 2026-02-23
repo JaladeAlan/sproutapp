@@ -1,11 +1,4 @@
 "use client";
-// app/register/page.jsx
-// Converted from React Router version — changes:
-//   - "use client" added (uses useState, hooks)
-//   - useNavigate → useRouter from next/navigation
-//   - useSearchParams from react-router-dom → next/navigation
-//   - Link from react-router-dom → next/link
-//   - Removed local <Toaster> (handled globally in layout.jsx)
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -13,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, User, UserPlus, Gift } from "lucide-react";
-import api from "../../utils/api";
+import api from "../utils/api";
 
 export default function Register() {
   const [form, setForm] = useState({

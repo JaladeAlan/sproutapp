@@ -3,9 +3,9 @@
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
-import api from "../../utils/api";
+import api from "../utils/api";
 import { TrendingUp, Wallet, MapPin, Activity, ArrowUpRight } from "lucide-react";
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
