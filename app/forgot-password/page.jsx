@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, ArrowLeft, Loader2 } from "lucide-react";
 import api from "../../utils/api";
-import FormError from "../../components/FormError";
+import FormError from "../components/FormError";
 import toast from "react-hot-toast";
 
 export default function ForgotPassword() {
