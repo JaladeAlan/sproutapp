@@ -1,5 +1,7 @@
 import Link from "next/link";
 import FaqSection from "./components/FaqSection";
+import LandImage from "./components/LandImage";
+import FeaturedProperties from "./components/FeaturedProperties";
 import {
   MapPin, Home, ArrowRight, LogIn, ChevronRight,
   CheckCircle, Shield, Zap, FileCheck, Users, TrendingUp,
@@ -102,7 +104,7 @@ async function getLands() {
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
-export default async function Home() {
+export default async function Homepage() {
   const lands = await getLands();
 
   return (
@@ -146,7 +148,7 @@ export default async function Home() {
               <Link href="/register"
                 className="group flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-[#0D1F1A] transition-all hover:scale-105 active:scale-95 shadow-xl"
                 style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}>
-                Start Investing Free
+                Start Investing Today
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link href="/login"
@@ -219,53 +221,7 @@ export default async function Home() {
               <p className="text-white/50">Prime investment opportunities across Nigeria</p>
             </div>
 
-            {lands.length === 0 ? (
-              <div className="text-center py-20 border border-white/10 rounded-2xl">
-                <Home size={48} className="mx-auto mb-4 opacity-20 text-white" />
-                <p className="text-white/40">New properties coming soon</p>
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {lands.map((land) => {
-                  const imageUrl = land.images?.length > 0 ? land.images[0].url : "/no-image.jpeg";
-                  const pricePerUnit = (land.price_per_unit_kobo || 0) / 100;
-                  return (
-                    <article key={land.id}
-                      className="group relative rounded-2xl overflow-hidden border border-white/10 bg-white/5 hover:border-amber-500/40 transition-all hover:-translate-y-1">
-                      <div className="relative h-52 overflow-hidden">
-                        <img src={imageUrl} alt={land.title} loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => { e.target.src = "/no-image.jpeg"; }} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-[#0D1F1A] via-transparent to-transparent" />
-                        <div className="absolute top-3 left-3 flex gap-2 flex-wrap">
-                          <span className="bg-amber-500 text-[#0D1F1A] text-xs font-bold px-2.5 py-1 rounded-full">Featured</span>
-                          {land.sold_percentage > 0 && (
-                            <span className="bg-white/20 backdrop-blur-sm text-white text-xs px-2.5 py-1 rounded-full">{land.sold_percentage}% sold</span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="p-5">
-                        <h3 className="text-white font-bold text-lg mb-1 leading-snug">{land.title}</h3>
-                        <p className="flex items-center gap-1.5 text-white/50 text-sm mb-4">
-                          <MapPin size={13} /> {land.location}
-                        </p>
-                        <div className="flex items-end justify-between">
-                          <div>
-                            <p className="text-white/40 text-xs mb-0.5">Price per unit</p>
-                            <p className="text-2xl font-bold text-amber-400">₦{pricePerUnit.toLocaleString()}</p>
-                          </div>
-                          <Link href="/register"
-                            className="flex items-center gap-1.5 text-sm font-semibold text-[#0D1F1A] px-4 py-2.5 rounded-lg transition-all hover:scale-105"
-                            style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}>
-                            Invest <ArrowRight size={14} />
-                          </Link>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            )}
+            <FeaturedProperties lands={lands} />
           </div>
         </section>
 

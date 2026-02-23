@@ -1,9 +1,10 @@
 import "./globals.css";
 import { AuthProvider } from "./context/AuthContext";
 import ToasterProvider from "./components/ToasterProvider";
+import NavigationProgress from "./components/NavigationProgress";
 
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://yourdomain.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://growthbackend.onrender.com/api"),
 };
 
 export default function RootLayout({ children }) {
@@ -20,6 +21,7 @@ export default function RootLayout({ children }) {
       <body>
         <AuthProvider>
           <ToasterProvider />
+          <NavigationProgress />
           {children}
         </AuthProvider>
       </body>
