@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import api from "../../../../utils/api";
-import PolygonMapEditor from "../PolygonMapEditor";
 import {
   MapPin, Image, FileText, Layers,
   DollarSign, ArrowLeft, Plus,
 } from "lucide-react";
+import dynamic from "next/dynamic";
+const PolygonMapEditor = dynamic(() => import("../PolygonMapEditor"), { ssr: false });
 
 export default function CreateLand() {
   const router = useRouter();
