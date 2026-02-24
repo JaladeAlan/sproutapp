@@ -3,19 +3,22 @@
 import { usePathname } from "next/navigation";
 import Header from "./Header";
 
-const NO_CHROME_ROUTES = [
+const GUEST_ROUTES = [
   "/",
   "/login",
   "/register",
   "/forgot-password",
-  "/reset-verify",
-  "/set-new-password",
+  "/reset-password",
   "/verify-email",
-  "/email-verified",
 ];
 
 export default function ConditionalHeader() {
   const pathname = usePathname();
-  if (NO_CHROME_ROUTES.includes(pathname)) return null;
+
+  const isGuestPage = GUEST_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+
+  if (isGuestPage) return null;
   return <Header />;
 }
