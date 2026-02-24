@@ -1,4 +1,6 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL;
+const API_BASE = (
+  process.env.NEXT_PUBLIC_API_BASE_URL || "https://growthbackend.onrender.com/api"
+).replace(/\/api$/, "");
 
 export const getLandImage = (land) => {
   if (land?.images?.length > 0 && land.images[0].url) {
