@@ -151,24 +151,47 @@ export default function LandList() {
 
       {/* ===================== FULLSCREEN MAP ===================== */}
       {isFullScreen && (
-        <div className="fixed inset-0 z-[99999] bg-[#0D1F1A]">
-          <div className="absolute top-4 right-4 z-[100000] flex gap-2">
+        <div className="fixed inset-0 z-99999 bg-[#0D1F1A]">
+            {/* Fullscreen control bar — solid dark pill for maximum visibility over any map tile */}
+          <div
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-100000 flex items-center gap-2 px-3 py-2 rounded-2xl"
+            style={{
+              background: "rgba(8, 20, 15, 0.92)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              backdropFilter: "blur(12px)",
+              boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+            }}
+          >
+            {/* Property count */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
+              <MapPin size={12} className="text-amber-500" />
+              <span className="text-white/60 text-xs font-semibold tabular-nums">{visibleLands.length} visible</span>
+            </div>
+
+            <div className="w-px h-5 bg-white/10" />
+
+            {/* Heatmap toggle */}
             <button
               onClick={() => setShowHeatmap((v) => !v)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+              className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                 showHeatmap
-                  ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-red-500/30"
-                  : "bg-white/10 text-white/70 hover:bg-white/15 border border-white/10"
+                  ? "text-white shadow-lg shadow-red-500/30"
+                  : "text-white/70 hover:text-white hover:bg-white/10"
               }`}
+              style={showHeatmap ? { background: "linear-gradient(135deg, #f97316, #ef4444)" } : {}}
             >
-              <Flame size={14} />
-              {showHeatmap ? "Hide" : "Show"} Heatmap
+              <Flame size={13} />
+              {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
             </button>
+
+            <div className="w-px h-5 bg-white/10" />
+
+            {/* Close */}
             <button
               onClick={() => setIsFullScreen(false)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white/70 text-sm font-semibold border border-white/10 transition-all"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white/70 hover:text-white hover:bg-white/10 transition-all"
             >
-              <X size={14} /> Close
+              <X size={13} /> Exit Fullscreen
             </button>
           </div>
           <MapWithNoSSR {...mapProps} className="h-full w-full" />
@@ -197,12 +220,12 @@ export default function LandList() {
         {/* ===================== MAP SECTION ===================== */}
         {!isFullScreen && (
           <div ref={mapSectionRef} className="relative rounded-2xl overflow-hidden border border-white/10 mb-10 shadow-2xl shadow-black/50">
-            <div className="absolute top-3 right-3 z-[2000] flex gap-2">
+            <div className="absolute top-3 right-3 z-2000 flex gap-2">
               <button
                 onClick={() => setShowHeatmap((v) => !v)}
                 className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   showHeatmap
-                    ? "bg-gradient-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-red-500/30"
+                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-red-500/30"
                     : "bg-black/60 backdrop-blur text-white/70 hover:bg-black/80 border border-white/10"
                 }`}
               >
@@ -217,7 +240,7 @@ export default function LandList() {
               </button>
             </div>
 
-            <MapWithNoSSR {...mapProps} className="h-[480px] w-full" />
+            <MapWithNoSSR {...mapProps} className="h-120 w-full" />
           </div>
         )}
 
@@ -246,7 +269,7 @@ export default function LandList() {
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0D1F1A]/80 via-transparent to-transparent" />
+                  <div className="absolute inset-0 bg-linear-to-t from-[#0D1F1A]/80 via-transparent to-transparent" />
 
                   {/* Price tag */}
                   <div
