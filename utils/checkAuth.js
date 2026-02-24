@@ -1,13 +1,15 @@
 import axios from "axios";
 
 export async function checkAuth() {
+  if (typeof window === "undefined") return false;
+
   const token = localStorage.getItem("token");
   if (!token) return false;
 
   try {
-    const baseURL = import.meta.env.VITE_API_BASE_URL;
+    const baseURL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://growthbackend.onrender.com/api";
 
-    const response = await axios.get(`${baseURL}/api/me`, {
+    const response = await axios.get(`${baseURL}/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
