@@ -2,8 +2,8 @@ import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import ToasterProvider from "./components/ToasterProvider";
 import NavigationProgress from "./components/NavigationProgress";
-import ConditionalHeader from "../components/ConditionalHeader";
-import ConditionalFooter from "../components/ConditionalFooter";
+import ConditionalHeader from "./components/ConditionalHeader";
+import ConditionalFooter from "./components/ConditionalFooter";
 
 export const metadata = {
   metadataBase: new URL(

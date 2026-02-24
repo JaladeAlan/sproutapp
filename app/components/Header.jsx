@@ -51,7 +51,7 @@ export default function Header() {
   return (
     <>
       <header
-        className="fixed top-0 left-0 w-full z-[9000] transition-all duration-300"
+        className="fixed top-0 left-0 w-full z-9000 transition-all duration-300"
         style={{
           fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
           background: scrolled
@@ -145,7 +145,7 @@ export default function Header() {
         <>
           {/* Backdrop */}
           <div
-            className={`fixed inset-0 bg-black/60 backdrop-blur-sm md:hidden z-[9100] transition-opacity duration-300 ${
+            className={`fixed inset-0 bg-black/60 backdrop-blur-sm md:hidden z-9100 transition-opacity duration-300 ${
               menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
             }`}
             onClick={() => setMenuOpen(false)}
@@ -158,7 +158,7 @@ export default function Header() {
             role="dialog"
             aria-modal="true"
             aria-label="Mobile navigation"
-            className={`fixed top-0 right-0 h-full w-72 md:hidden z-[9200] transition-transform duration-300 ease-out ${
+            className={`fixed top-0 right-0 h-full w-72 md:hidden z-9200 transition-transform duration-300 ease-out ${
               menuOpen ? "translate-x-0" : "translate-x-full"
             }`}
             style={{
