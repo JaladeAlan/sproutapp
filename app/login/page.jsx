@@ -41,6 +41,10 @@ function LoginForm() {
     try {
       await login(form.email, form.password);
       const redirect = searchParams.get("redirect") || "/dashboard";
+      // Signal the dashboard to show a welcome toast on this first load only
+      if (!searchParams.get("redirect")) {
+        sessionStorage.setItem("justLoggedIn", "1");
+      }
       router.push(redirect);
     } catch (err) {
       handleApiError(err, "Login failed. Please try again.", setError);

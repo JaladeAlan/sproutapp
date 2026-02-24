@@ -69,7 +69,7 @@ export default function Footer() {
 
             <div className="space-y-2.5">
               {[
-                { icon: <MapPin size={13} />, text: "Lagos, Nigeria" },
+                { icon: <MapPin size={13} />, text: "Ibadan, Oyo State, Nigeria" },
                 { icon: <Mail size={13} />,   text: "hello@sproutvest.com" },
                 { icon: <Phone size={13} />,  text: "+234 800 000 0000" },
               ].map((item) => (
@@ -110,7 +110,7 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-white/20">Platform operational</span>
+            <span className="text-xs text-white/20">La Jade</span>
           </div>
         </div>
       </div>
