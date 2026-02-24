@@ -16,7 +16,7 @@ const footerLinks = [
     links: [
       { label: "Dashboard",  href: "/dashboard" },
       { label: "Settings",   href: "/settings"  },
-      { label: "KYC Verify", href: "/kyc"       },
+      { label: "Support",    href: "/support"   },
     ],
   },
   {
