@@ -42,13 +42,13 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
+    setCookie("auth_token", token);
     api.defaults.headers.common.Authorization = `Bearer ${token}`;
 
     try {
       const res      = await api.get("/me");
       const userData = res.data.user ?? res.data;
       setUser(userData);
-      setCookie("auth_token", token);
       setCookie("user_role", userData?.role || "user");
     } catch (err) {
       console.error("Auth check failed:", err);
@@ -59,8 +59,6 @@ export const AuthProvider = ({ children }) => {
       clearCookie("user_role");
       setUser(null);
 
-      // Only save & redirect when on a protected route.
-      // Prevents setting redirectAfterLogin = "/login" for fresh visitors.
       const isGuestRoute = GUEST_ROUTES.some(
         (r) => pathname === r || pathname.startsWith(r + "/")
       );
