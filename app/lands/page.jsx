@@ -5,15 +5,13 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import api from "../../utils/api";
 import { getLandImage } from "../../utils/images";
-import { MapPin, Maximize2, Flame, X, TrendingUp } from "lucide-react";
+import { koboToNaira } from "../../utils/currency";
+import { useDebounce } from "../../utils/useDebounce";
+import { MapPin, Maximize2, Flame, X } from "lucide-react";
 
-// Dynamically import map to avoid SSR window errors
 const MapWithNoSSR = dynamic(() => import("./_LandMap"), { ssr: false });
 
-/* ===================== MONEY ===================== */
-const koboToNaira = (kobo) => Number(kobo) / 100;
-
-/* ===================== PRICE COLOR ===================== */
+/* ── Price tag helper ── */
 function getPriceTag(priceKobo) {
   const n = koboToNaira(priceKobo);
   if (n < 2000) return { label: "Budget", color: "#22c55e" };
@@ -21,7 +19,7 @@ function getPriceTag(priceKobo) {
   return { label: "Premium", color: "#ef4444" };
 }
 
-/* ===================== MAIN ===================== */
+/* ── Main ── */
 export default function LandList() {
   const [lands, setLands] = useState([]);
   const [visibleLands, setVisibleLands] = useState([]);
@@ -37,7 +35,7 @@ export default function LandList() {
 
   const mapSectionRef = useRef(null);
 
-  /* ===================== FETCH ===================== */
+  /* ── Fetch ── */
   useEffect(() => {
     (async () => {
       try {
@@ -65,8 +63,8 @@ export default function LandList() {
     [landsWithPoints, landsWithPolygons]
   );
 
-  /* ===================== VIEWPORT FILTER ===================== */
-  const handleMapMoveEnd = useCallback(
+  /* ── Debounced viewport filter (300 ms) ── */
+  const filterByBounds = useCallback(
     (bounds) => {
       setVisibleLands(
         lands.filter((l) => {
@@ -80,20 +78,19 @@ export default function LandList() {
     },
     [lands]
   );
+  const handleMapMoveEnd = useDebounce(filterByBounds, 300);
 
-  /* ===================== FULLSCREEN SCROLL LOCK ===================== */
+  /* ── Fullscreen scroll lock ── */
   useEffect(() => {
     document.body.style.overflow = isFullScreen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isFullScreen]);
 
-  /* ===================== STATES ===================== */
+  /* ── Loading / error states ── */
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center bg-[#0D1F1A]"
-        style={{ fontFamily: "'DM Sans', sans-serif" }}
-      >
+      <div className="min-h-screen flex items-center justify-center bg-[#0D1F1A]"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}>
         <div className="text-center">
           <div className="w-12 h-12 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-4" />
           <p className="text-white/40 text-sm tracking-widest uppercase">Loading properties</p>
@@ -149,10 +146,9 @@ export default function LandList() {
         style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }}
       />
 
-      {/* ===================== FULLSCREEN MAP ===================== */}
+      {/* ── Fullscreen map ── */}
       {isFullScreen && (
         <div className="fixed inset-0 z-99999 bg-[#0D1F1A]">
-            {/* Fullscreen control bar — solid dark pill for maximum visibility over any map tile */}
           <div
             className="absolute top-4 left-1/2 -translate-x-1/2 z-100000 flex items-center gap-2 px-3 py-2 rounded-2xl"
             style={{
@@ -162,31 +158,22 @@ export default function LandList() {
               boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
             }}
           >
-            {/* Property count */}
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
               <MapPin size={12} className="text-amber-500" />
               <span className="text-white/60 text-xs font-semibold tabular-nums">{visibleLands.length} visible</span>
             </div>
-
             <div className="w-px h-5 bg-white/10" />
-
-            {/* Heatmap toggle */}
             <button
               onClick={() => setShowHeatmap((v) => !v)}
               className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                showHeatmap
-                  ? "text-white shadow-lg shadow-red-500/30"
-                  : "text-white/70 hover:text-white hover:bg-white/10"
+                showHeatmap ? "text-white shadow-lg shadow-red-500/30" : "text-white/70 hover:text-white hover:bg-white/10"
               }`}
               style={showHeatmap ? { background: "linear-gradient(135deg, #f97316, #ef4444)" } : {}}
             >
               <Flame size={13} />
               {showHeatmap ? "Hide Heatmap" : "Show Heatmap"}
             </button>
-
             <div className="w-px h-5 bg-white/10" />
-
-            {/* Close */}
             <button
               onClick={() => setIsFullScreen(false)}
               className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white/70 hover:text-white hover:bg-white/10 transition-all"
@@ -198,26 +185,19 @@ export default function LandList() {
         </div>
       )}
 
-      {/* ===================== PAGE ===================== */}
+      {/* ── Page ── */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-10">
 
         {/* Header */}
         <div className="mb-10">
-          <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-600 mb-2">
-            Property Marketplace
-          </p>
-          <h1
-            className="text-5xl font-bold text-white"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-          >
+          <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-600 mb-2">Property Marketplace</p>
+          <h1 className="text-5xl font-bold text-white" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             Available Lands
           </h1>
-          <p className="text-white/40 mt-2 text-sm">
-            {visibleLands.length} properties in current view
-          </p>
+          <p className="text-white/40 mt-2 text-sm">{visibleLands.length} properties in current view</p>
         </div>
 
-        {/* ===================== MAP SECTION ===================== */}
+        {/* Map section */}
         {!isFullScreen && (
           <div ref={mapSectionRef} className="relative rounded-2xl overflow-hidden border border-white/10 mb-10 shadow-2xl shadow-black/50">
             <div className="absolute top-3 right-3 z-2000 flex gap-2">
@@ -225,7 +205,7 @@ export default function LandList() {
                 onClick={() => setShowHeatmap((v) => !v)}
                 className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
                   showHeatmap
-                    ? "bg-linear-to-r from-orange-500 to-red-500 text-white shadow-lg shadow-red-500/30"
+                    ? "bg-linear-to-rrom-orange-500 to-red-500 text-white shadow-lg shadow-red-500/30"
                     : "bg-black/60 backdrop-blur text-white/70 hover:bg-black/80 border border-white/10"
                 }`}
               >
@@ -239,12 +219,11 @@ export default function LandList() {
                 <Maximize2 size={13} /> Fullscreen
               </button>
             </div>
-
             <MapWithNoSSR {...mapProps} className="h-120 w-full" />
           </div>
         )}
 
-        {/* ===================== LAND CARDS ===================== */}
+        {/* Land cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {visibleLands.map((land) => {
             const priceTag = getPriceTag(land.price_per_unit_kobo);
@@ -268,18 +247,13 @@ export default function LandList() {
                     alt={land.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-linear-to-t from-[#0D1F1A]/80 via-transparent to-transparent" />
-
-                  {/* Price tag */}
                   <div
-                    className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-bold text-white backdrop-blur-sm"
+                    className="absolute top-3 left-3 px-2.5 py-1 rounded-lg text-xs font-bold backdrop-blur-sm"
                     style={{ background: `${priceTag.color}33`, border: `1px solid ${priceTag.color}55`, color: priceTag.color }}
                   >
                     {priceTag.label}
                   </div>
-
-                  {/* Available badge */}
                   {land.is_available && (
                     <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 backdrop-blur-sm">
                       Available
@@ -289,18 +263,14 @@ export default function LandList() {
 
                 {/* Content */}
                 <div className="p-5">
-                  <h3
-                    className="font-bold text-white text-lg leading-snug mb-1"
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                  >
+                  <h3 className="font-bold text-white text-lg leading-snug mb-1"
+                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                     {land.title}
                   </h3>
                   <div className="flex items-center gap-1.5 text-white/40 text-xs mb-4">
-                    <MapPin size={11} />
-                    {land.location}
+                    <MapPin size={11} /> {land.location}
                   </div>
 
-                  {/* Price & units row */}
                   <div className="flex items-end justify-between mb-5">
                     <div>
                       <p className="text-xs text-white/30 uppercase tracking-wider mb-0.5">Per Unit</p>
@@ -317,7 +287,6 @@ export default function LandList() {
                     </div>
                   </div>
 
-                  {/* Actions */}
                   <div className="flex gap-2">
                     <Link
                       href={`/lands/${land.id}`}
@@ -330,7 +299,6 @@ export default function LandList() {
                       onClick={() => {
                         if (showHeatmap) setShowHeatmap(false);
                         if (isFullScreen) setIsFullScreen(false);
-
                         setTimeout(() => {
                           mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                           setTimeout(() => {

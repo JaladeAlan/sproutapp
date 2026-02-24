@@ -15,30 +15,31 @@ const PUBLIC_ROUTES = [
   "/privacy",
 ];
 
-const ADMIN_ROUTES = [
-  "/admin",
-];
+const ADMIN_ROUTES = ["/admin"];
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
 
 export function proxy(request) {
   const { pathname } = request.nextUrl;
 
-  // Get token from cookie (set this when user logs in — see AuthContext note below)
   const token = request.cookies.get("auth_token")?.value;
-  const userRole = request.cookies.get("user_role")?.value; // "admin" or "user"
+  const userRole = request.cookies.get("user_role")?.value;
 
-  const isPublicRoute = PUBLIC_ROUTES.includes(pathname);
-  const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route));
+  const isPublicRoute = PUBLIC_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(route + "/")
+  );
+  const isAdminRoute = ADMIN_ROUTES.some((route) =>
+    pathname.startsWith(route)
+  );
 
   // ── Not logged in, trying to access protected route ──
   if (!token && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname); // remember where they were going
+    loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // ── Logged in, trying to access auth pages (login/register) ──
+  // ── Logged in, trying to access auth pages ──
   if (token && (pathname === "/login" || pathname === "/register")) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }

@@ -2,15 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Footer from "./Footer";
-
-const GUEST_ROUTES = [
-  "/",
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-  "/verify-email",
-];
+import { GUEST_ROUTES } from "../../utils/routes";
 
 export default function ConditionalFooter() {
   const pathname = usePathname();

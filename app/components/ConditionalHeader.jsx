@@ -2,15 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Header from "./Header";
-
-const GUEST_ROUTES = [
-  "/",
-  "/login",
-  "/register",
-  "/forgot-password",
-  "/reset-password",
-  "/verify-email",
-];
+import { GUEST_ROUTES } from "../../utils/routes";
 
 export default function ConditionalHeader() {
   const pathname = usePathname();

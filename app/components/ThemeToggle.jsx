@@ -1,30 +1,39 @@
-import { useEffect, useState } from "react"
-import { Moon, Sun } from "lucide-react"
-import { Button } from "@/components/ui/button"
+"use client";
 
-export function ThemeToggle() {
-  const [darkMode, setDarkMode] = useState(
-    localStorage.getItem("theme") === "dark"
-  )
+import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
+
+export default function ThemeToggle() {
+  const [darkMode, setDarkMode] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Read persisted preference only on the client
+  useEffect(() => {
+    setMounted(true);
+    const stored = localStorage.getItem("theme");
+    if (stored === "dark") setDarkMode(true);
+  }, []);
 
   useEffect(() => {
+    if (!mounted) return;
     if (darkMode) {
-      document.documentElement.classList.add("dark")
-      localStorage.setItem("theme", "dark")
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
     } else {
-      document.documentElement.classList.remove("dark")
-      localStorage.setItem("theme", "light")
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
     }
-  }, [darkMode])
+  }, [darkMode, mounted]);
+
+  if (!mounted) return null; // avoid hydration mismatch
 
   return (
-    <Button
-      variant="outline"
-      size="icon"
-      onClick={() => setDarkMode(!darkMode)}
-      className="transition-all"
+    <button
+      onClick={() => setDarkMode((prev) => !prev)}
+      aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+      className="w-9 h-9 flex items-center justify-center rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
     >
-      {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-    </Button>
-  )
+      {darkMode ? <Sun size={16} /> : <Moon size={16} />}
+    </button>
+  );
 }

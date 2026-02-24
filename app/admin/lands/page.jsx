@@ -4,19 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "../../../utils/api";
 import toast from "react-hot-toast";
+import { koboToNaira, nairaToKobo, formatNaira } from "../../../utils/currency";
 import {
   MapPin, Plus, Eye, Pencil, Tag,
   ToggleLeft, ToggleRight, X, TrendingUp,
-  CheckCircle, XCircle, Layers,
+  CheckCircle, XCircle,
 } from "lucide-react";
-
-const koboToNaira = (kobo) => Number(kobo) / 100;
-const nairaToKobo = (naira) => Math.round(Number(naira) * 100);
-const formatNaira = (kobo) =>
-  koboToNaira(kobo).toLocaleString("en-NG", {
-    style: "currency", currency: "NGN",
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
-  });
 
 export default function AdminLands() {
   const [lands, setLands] = useState([]);
@@ -80,7 +73,6 @@ export default function AdminLands() {
       className="min-h-screen bg-[#0D1F1A] relative"
       style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif" }}
     >
-      {/* Background */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
       <div className="absolute bottom-0 left-0 w-[35vw] h-[35vw] rounded-full opacity-10 pointer-events-none"
@@ -88,12 +80,10 @@ export default function AdminLands() {
 
       <div className="relative z-10 max-w-7xl mx-auto px-6 py-10">
 
-        {/* Breadcrumb */}
         <Link href="/admin" className="inline-flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors mb-8">
           ← Back to Dashboard
         </Link>
 
-        {/* Header */}
         <div className="flex items-start justify-between flex-wrap gap-4 mb-10">
           <div>
             <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-600 mb-2">Admin Panel</p>
@@ -111,7 +101,6 @@ export default function AdminLands() {
           </Link>
         </div>
 
-        {/* Loading */}
         {loading ? (
           <div className="flex items-center justify-center py-24">
             <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
@@ -130,7 +119,6 @@ export default function AdminLands() {
           </div>
         ) : (
           <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-            {/* Table header */}
             <div className="grid grid-cols-[2fr_1.2fr_1.2fr_1fr_1fr_160px] gap-4 px-6 py-3 border-b border-white/10 bg-white/5">
               {["Title", "Location", "Price / Unit", "Units", "Status", "Actions"].map((h) => (
                 <span key={h} className="text-xs font-bold uppercase tracking-widest text-white/30">{h}</span>
@@ -144,31 +132,26 @@ export default function AdminLands() {
                   i < lands.length - 1 ? "border-b border-white/5" : ""
                 }`}
               >
-                {/* Title */}
                 <Link href={`/lands/${land.id}`} className="group">
                   <p className="text-sm font-semibold text-white group-hover:text-amber-400 transition-colors truncate">
                     {land.title}
                   </p>
                 </Link>
 
-                {/* Location */}
                 <p className="text-sm text-white/50 flex items-center gap-1.5 truncate">
                   <MapPin size={12} className="shrink-0" />{land.location}
                 </p>
 
-                {/* Price */}
                 <p className="text-sm font-semibold text-amber-400">
                   {formatNaira(land.price_per_unit_kobo)}
                 </p>
 
-                {/* Units */}
                 <div className="flex items-center gap-1.5 text-sm">
                   <span className="text-emerald-400 font-semibold">{land.available_units}</span>
                   <span className="text-white/20">/</span>
                   <span className="text-white/40">{land.total_units}</span>
                 </div>
 
-                {/* Status */}
                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border w-fit ${
                   land.is_available
                     ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
@@ -178,7 +161,6 @@ export default function AdminLands() {
                   {land.is_available ? "Active" : "Disabled"}
                 </span>
 
-                {/* Actions */}
                 <div className="flex items-center gap-1">
                   <ActionBtn href={`/lands/${land.id}`} icon={<Eye size={13} />} label="View" color="text-white/40 hover:text-white" />
                   <ActionBtn href={`/admin/lands/${land.id}/edit`} icon={<Pencil size={13} />} label="Edit" color="text-purple-400 hover:text-purple-300" />
@@ -214,7 +196,6 @@ export default function AdminLands() {
             className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0f2820] shadow-2xl overflow-hidden"
             style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif" }}
           >
-            {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-5 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-amber-500/15 flex items-center justify-center">
@@ -236,7 +217,6 @@ export default function AdminLands() {
             </div>
 
             <div className="p-6 space-y-5">
-              {/* Current price */}
               <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                 <p className="text-xs text-white/30 mb-1">Current Price</p>
                 <p className="text-2xl font-bold text-amber-400" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
@@ -244,14 +224,10 @@ export default function AdminLands() {
                 </p>
               </div>
 
-              {/* New price */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-white/40 mb-2">
-                  New Price (₦)
-                </label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-white/40 mb-2">New Price (₦)</label>
                 <input
-                  type="number"
-                  value={newPrice}
+                  type="number" value={newPrice}
                   onChange={(e) => setNewPrice(e.target.value)}
                   min="0" step="0.01"
                   className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-3.5 rounded-xl text-sm outline-none transition-all"
@@ -259,20 +235,15 @@ export default function AdminLands() {
                 />
               </div>
 
-              {/* Effective date */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-white/40 mb-2">
-                  Effective Date
-                </label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-white/40 mb-2">Effective Date</label>
                 <input
-                  type="date"
-                  value={priceDate}
+                  type="date" value={priceDate}
                   onChange={(e) => setPriceDate(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white px-4 py-3.5 rounded-xl text-sm outline-none transition-all scheme-dark"
                 />
               </div>
 
-              {/* Actions */}
               <div className="flex gap-3 pt-1">
                 <button
                   onClick={() => setShowModal(false)}
@@ -304,11 +275,8 @@ export default function AdminLands() {
 
 function ActionBtn({ href, icon, label, color }) {
   return (
-    <Link
-      href={href}
-      title={label}
-      className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition-all ${color}`}
-    >
+    <Link href={href} title={label}
+      className={`w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/10 transition-all ${color}`}>
       {icon}
     </Link>
   );
