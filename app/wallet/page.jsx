@@ -140,7 +140,7 @@ export default function WalletPage() {
         loading: { style: { background: "#0D1F1A", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" } },
       }} />
 
-      <div className="relative z-10 max-w-4xl mx-auto px-6 py-10 space-y-8">
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
 
         {/* Header */}
         <div>
@@ -151,26 +151,43 @@ export default function WalletPage() {
           <p className="text-white/40 mt-1 text-sm">Manage your funds securely</p>
         </div>
 
-        {/* Balance Card */}
-        <div className="relative rounded-2xl overflow-hidden border border-amber-500/20 p-8"
-          style={{ background: "linear-gradient(135deg, rgba(200,135,58,0.15) 0%, rgba(13,31,26,0.8) 60%)" }}>
+        {/* ── Balance Card ── */}
+        <div
+          className="relative rounded-2xl overflow-hidden border border-amber-500/20 p-6 sm:p-8"
+          style={{ background: "linear-gradient(135deg, rgba(200,135,58,0.15) 0%, rgba(13,31,26,0.8) 60%)" }}
+        >
           <div className="absolute top-0 right-0 w-64 h-64 rounded-full opacity-10 pointer-events-none"
             style={{ background: "radial-gradient(circle, #E8A850, transparent)", transform: "translate(30%, -30%)" }} />
           <div className="relative z-10">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-2">
               <CreditCard size={14} className="text-amber-500/70" />
               <p className="text-xs font-bold uppercase tracking-widest text-amber-500/70">Available Balance</p>
             </div>
-            <h2 className="text-5xl font-bold text-white mb-6" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+
+            {/*
+              clamp(1.6rem, 7vw, 3rem) scales with viewport width:
+              - 320px → ~22px  — fits "₦10,000,000" without overflow
+              - 375px → ~26px  — iPhone SE / standard
+              - 768px → 3rem   — capped at original desktop size
+              break-all is the safety net for extreme values.
+            */}
+            <h2
+              className="font-bold text-white mb-6 leading-tight break-all"
+              style={{
+                fontFamily: "'Playfair Display', Georgia, serif",
+                fontSize: "clamp(1.6rem, 7vw, 3rem)",
+              }}
+            >
               ₦{(balance / 100).toLocaleString()}
             </h2>
+
             <div className="flex flex-wrap gap-3">
               <button onClick={() => setActiveTab("deposit")}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm font-semibold transition-all">
+                className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm font-semibold transition-all">
                 <ArrowDownCircle size={14} /> Add Money
               </button>
               <button onClick={() => setActiveTab("withdraw")}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm font-semibold transition-all">
+                className="inline-flex items-center gap-2 px-4 sm:px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-white text-sm font-semibold transition-all">
                 <ArrowUpCircle size={14} /> Withdraw
               </button>
             </div>
@@ -196,7 +213,7 @@ export default function WalletPage() {
             ))}
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {activeTab === "deposit" ? (
               <div className="space-y-5">
                 {/* Gateway */}
@@ -230,7 +247,6 @@ export default function WalletPage() {
                       className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
                     />
                   </div>
-                  {/* Quick amounts */}
                   <div className="flex flex-wrap gap-2 mt-3">
                     {QUICK_AMOUNTS.map((a) => (
                       <button key={a} type="button" onClick={() => setDepositAmount(a.toString())}
@@ -263,7 +279,7 @@ export default function WalletPage() {
               <div className="space-y-5">
                 {/* Balance notice */}
                 <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
-                  <AlertCircle size={15} className="text-amber-500 flex-shrink-0 mt-0.5" />
+                  <AlertCircle size={15} className="text-amber-500 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-xs font-bold uppercase tracking-wider text-white/30 mb-0.5">Available Balance</p>
                     <p className="text-amber-400 font-bold">₦{(balance / 100).toLocaleString()}</p>
@@ -329,7 +345,7 @@ export default function WalletPage() {
             )}
           </div>
 
-          <div className="p-5">
+          <div className="p-4 sm:p-5">
             {transactions.length === 0 ? (
               <div className="text-center py-10">
                 <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3">
@@ -341,25 +357,25 @@ export default function WalletPage() {
               <div className="space-y-3">
                 {transactions.map((t, i) => (
                   <div key={t.id ?? t.reference ?? i}
-                    className="flex items-center justify-between rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 hover:border-white/15 transition-all">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    className="flex items-center justify-between rounded-xl border border-white/8 bg-white/3 px-3 sm:px-4 py-3 hover:border-white/15 transition-all gap-2">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
                         t.type === "Deposit" ? "bg-emerald-500/10" : "bg-blue-500/10"
                       }`}>
                         {t.type === "Deposit"
                           ? <ArrowDownCircle size={16} className="text-emerald-400" />
                           : <ArrowUpCircle size={16} className="text-blue-400" />}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-sm font-semibold text-white">{t.type}</p>
-                        <p className="text-xs text-white/30">{formatDate(t.date)}</p>
+                        <p className="text-xs text-white/30 truncate">{formatDate(t.date)}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <p className={`font-bold text-sm ${t.type === "Deposit" ? "text-emerald-400" : "text-blue-400"}`}>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <p className={`font-bold text-sm tabular-nums ${t.type === "Deposit" ? "text-emerald-400" : "text-blue-400"}`}>
                         {t.type === "Deposit" ? "+" : "-"}₦{t.amount.toLocaleString()}
                       </p>
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 ${getStatusStyle(t.status)}`}>
+                      <span className={`px-2 py-1 rounded-lg text-xs font-bold border flex items-center gap-1 ${getStatusStyle(t.status)}`}>
                         {getStatusIcon(t.status)}
                         <span className="hidden sm:inline">{t.status}</span>
                       </span>
@@ -370,6 +386,7 @@ export default function WalletPage() {
             )}
           </div>
         </div>
+
       </div>
     </div>
   );
