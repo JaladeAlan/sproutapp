@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
@@ -9,6 +9,14 @@ import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Gift, CheckCircle } from "lu
 import api from "../../utils/api";
 
 export default function Register() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
+  );
+}
+
+function RegisterForm() {
   const [form, setForm] = useState({
     name: "",
     email: "",
