@@ -16,8 +16,8 @@ export default function NotificationBell() {
   const [loading, setLoading] = useState(false);
 
   const dropdownRef = useRef(null);
-  const buttonRef = useRef(null);
-  const router = useRouter();
+  const buttonRef   = useRef(null);
+  const router      = useRouter();
 
   const loadNotifications = async () => {
     setLoading(true);
@@ -51,12 +51,11 @@ export default function NotificationBell() {
     }
   };
 
-  // Close on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
         dropdownRef.current && !dropdownRef.current.contains(e.target) &&
-        buttonRef.current && !buttonRef.current.contains(e.target)
+        buttonRef.current  && !buttonRef.current.contains(e.target)
       ) {
         setOpen(false);
       }
@@ -66,7 +65,9 @@ export default function NotificationBell() {
   }, []);
 
   return (
-    <div className="relative">
+    // isolation:isolate creates a new stacking context so z-index works correctly
+    <div className="relative" style={{ isolation: "isolate" }}>
+
       {/* Bell button */}
       <button
         ref={buttonRef}
@@ -88,17 +89,19 @@ export default function NotificationBell() {
       {/* Dropdown */}
       {open && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — sits behind dropdown but above everything else */}
           <div
-            className="hidden md:block fixed inset-0 z-9100"
+            className="hidden md:block fixed inset-0"
+            style={{ zIndex: 9100 }}
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
 
           <div
             ref={dropdownRef}
-            className="hidden md:block absolute right-0 mt-2 w-80 z-9300 rounded-2xl overflow-hidden shadow-2xl"
+            className="hidden md:block absolute right-0 mt-2 w-80 rounded-2xl overflow-hidden shadow-2xl"
             style={{
+              zIndex: 9200,
               background: "#0f2820",
               border: "1px solid rgba(255,255,255,0.1)",
               fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",

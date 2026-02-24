@@ -39,12 +39,14 @@ export default function Header() {
   return (
     <>
       <header
-        className="w-full z-40 border-b"
+        className="w-full border-b"
         style={{
           fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
           background: "rgba(13, 31, 26, 0.95)",
           backdropFilter: "blur(12px)",
           borderColor: "rgba(255,255,255,0.07)",
+          position: "relative",
+          zIndex: 40,
         }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between px-5 sm:px-8 py-3.5">
