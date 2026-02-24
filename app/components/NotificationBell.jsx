@@ -1,6 +1,8 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
-import { Bell } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Bell, CheckCheck } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   fetchNotifications,
   fetchUnreadNotifications,
@@ -15,13 +17,15 @@ export default function NotificationBell() {
 
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const loadNotifications = async () => {
     setLoading(true);
     try {
-      const unreadRes = await fetchUnreadNotifications();
-      const allRes = await fetchNotifications();
+      const [unreadRes, allRes] = await Promise.all([
+        fetchUnreadNotifications(),
+        fetchNotifications(),
+      ]);
       setUnreadCount(unreadRes.unread_notifications?.length || 0);
       setNotifications(allRes.notifications || []);
     } catch (err) {
@@ -31,9 +35,7 @@ export default function NotificationBell() {
     }
   };
 
-  useEffect(() => {
-    loadNotifications();
-  }, []);
+  useEffect(() => { loadNotifications(); }, []);
 
   const handleMarkAllAsRead = async () => {
     await markAllNotificationsRead();
@@ -43,110 +45,129 @@ export default function NotificationBell() {
 
   const handleBellClick = () => {
     if (window.innerWidth < 768) {
-      navigate("/notifications");
+      router.push("/notifications");
     } else {
-      setOpen(!open);
+      setOpen((prev) => !prev);
     }
   };
 
+  // Close on outside click
   useEffect(() => {
-    const handleClickOutside = (event) => {
+    const handleClickOutside = (e) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target) &&
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target)
+        dropdownRef.current && !dropdownRef.current.contains(e.target) &&
+        buttonRef.current && !buttonRef.current.contains(e.target)
       ) {
         setOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
     <div className="relative">
+      {/* Bell button */}
       <button
         ref={buttonRef}
         onClick={handleBellClick}
-        className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
         aria-label="Notifications"
+        className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
       >
-        <Bell size={20} />
+        <Bell size={16} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-semibold">
+          <span
+            className="absolute -top-1 -right-1 min-w-4.5 h-4.5 px-1 flex items-center justify-center rounded-full text-[10px] font-bold text-[#0D1F1A]"
+            style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}
+          >
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
+      {/* Dropdown */}
       {open && (
         <>
           {/* Backdrop */}
           <div
-            className="hidden md:block fixed inset-0 z-[9100]"
+            className="hidden md:block fixed inset-0 z-9100"
             onClick={() => setOpen(false)}
             aria-hidden="true"
           />
-          
-          {/* Dropdown */}
+
           <div
             ref={dropdownRef}
-            className="hidden md:block absolute right-0 mt-2 w-80 bg-white shadow-2xl rounded-lg border border-gray-200 z-[9300]"
+            className="hidden md:block absolute right-0 mt-2 w-80 z-9300 rounded-2xl overflow-hidden shadow-2xl"
+            style={{
+              background: "#0f2820",
+              border: "1px solid rgba(255,255,255,0.1)",
+              fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif",
+            }}
           >
-            <div className="flex justify-between items-center p-3 border-b bg-gray-50 rounded-t-lg">
-              <span className="font-semibold text-gray-800">Notifications</span>
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Bell size={14} className="text-amber-500" />
+                <span className="font-bold text-white text-sm">Notifications</span>
+                {unreadCount > 0 && (
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-[#0D1F1A]"
+                    style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}
+                  >
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="text-xs text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  className="flex items-center gap-1 text-xs text-white/30 hover:text-emerald-400 transition-colors"
                 >
-                  Mark all as read
+                  <CheckCheck size={12} />
+                  Mark all read
                 </button>
               )}
             </div>
 
-            <div className="max-h-96 overflow-y-auto">
+            {/* Body */}
+            <div className="max-h-80 overflow-y-auto">
               {loading ? (
-                <div className="p-8 text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <p className="text-gray-500 text-sm mt-2">Loading...</p>
+                <div className="py-10 flex flex-col items-center gap-3">
+                  <div className="w-6 h-6 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+                  <p className="text-white/30 text-xs">Loading...</p>
                 </div>
               ) : notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Bell size={32} className="mx-auto text-gray-300 mb-2" />
-                  <p className="text-gray-500 text-sm">No notifications yet</p>
+                <div className="py-10 flex flex-col items-center gap-2">
+                  <Bell size={28} className="text-white/10" />
+                  <p className="text-white/30 text-xs">No notifications yet</p>
                 </div>
               ) : (
                 notifications.slice(0, 10).map((n) => (
                   <div
                     key={n.id}
-                    className={`p-3 border-b hover:bg-gray-50 cursor-pointer transition ${
-                      !n.read_at ? "bg-blue-50 border-l-4 border-l-blue-500" : ""
+                    className={`px-4 py-3 border-b border-white/5 cursor-pointer hover:bg-white/5 transition-colors ${
+                      !n.read_at ? "border-l-2 border-l-amber-500/60" : ""
                     }`}
                   >
-                    <p className={`text-sm ${!n.read_at ? "font-semibold text-gray-900" : "text-gray-700"}`}>
+                    <p className={`text-sm leading-snug ${!n.read_at ? "font-semibold text-white" : "text-white/50"}`}>
                       {n.data?.message || "New activity"}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {new Date(n.created_at).toLocaleString()}
+                    <p className="text-[11px] text-white/25 mt-1">
+                      {new Date(n.created_at).toLocaleString("en-NG", {
+                        dateStyle: "medium", timeStyle: "short",
+                      })}
                     </p>
                   </div>
                 ))
               )}
             </div>
 
+            {/* Footer */}
             {notifications.length > 10 && (
-              <div className="p-3 border-t text-center bg-gray-50 rounded-b-lg">
+              <div className="px-4 py-3 border-t border-white/10 text-center">
                 <button
-                  onClick={() => {
-                    navigate("/notifications");
-                    setOpen(false);
-                  }}
-                  className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  onClick={() => { router.push("/notifications"); setOpen(false); }}
+                  className="text-xs font-semibold text-amber-500 hover:text-amber-400 transition-colors"
                 >
                   View all notifications →
                 </button>

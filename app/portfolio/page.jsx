@@ -1,20 +1,25 @@
 "use client";
 
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "../../utils/api";
 import handleApiError from "../../utils/handleApiError";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import {
-  TrendingUp, TrendingDown, Layers, ArrowLeft,
-  ChevronLeft, ChevronRight, X, AlertCircle, ShieldCheck,
+  TrendingUp, TrendingDown, Layers,
+  ChevronLeft, ChevronRight, X,
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
 
-/* ================= MONEY ================= */
-const koboToNaira = (k) => (Number(k) / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 });
+// API returns values already in Naira (not Kobo)
+const formatNaira = (v) =>
+  Number(v || 0).toLocaleString("en-NG", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+// price_per_unit_kobo IS in kobo
+const koboToNaira = (k) =>
+  (Number(k || 0) / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 });
 
 export default function Portfolio() {
   const [lands, setLands] = useState([]);
@@ -26,7 +31,6 @@ export default function Portfolio() {
   const [modal, setModal] = useState({ type: null, land: null, units: "", pin: "", processing: false });
   const router = useRouter();
 
-  /* ================= FETCH ================= */
   const fetchPortfolioAndUser = async () => {
     try {
       const [portfolioRes, userRes] = await Promise.all([
@@ -53,7 +57,6 @@ export default function Portfolio() {
     Promise.all([fetchPortfolioAndUser(), fetchAnalytics()]).finally(() => setLoading(false));
   }, []);
 
-  /* ================= PAGINATION ================= */
   const totalPages = Math.ceil(transactions.length / ITEMS_PER_PAGE);
   const paginatedTx = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -61,7 +64,6 @@ export default function Portfolio() {
   }, [transactions, currentPage]);
   useEffect(() => setCurrentPage(1), [transactions]);
 
-  /* ================= MODAL ================= */
   const openModal = (type, land) => {
     if (!hasPin) {
       toast.error("Please set a transaction PIN first");
@@ -82,28 +84,35 @@ export default function Portfolio() {
     setModal((p) => ({ ...p, processing: true }));
     try {
       await api.post(
-        modal.type === "buy" ? `/lands/${modal.land.land_id}/purchase` : `/lands/${modal.land.land_id}/sell`,
+        modal.type === "buy"
+          ? `/lands/${modal.land.land_id}/purchase`
+          : `/lands/${modal.land.land_id}/sell`,
         { units, transaction_pin: modal.pin }
       );
       toast.success("Transaction successful");
       await fetchPortfolioAndUser();
       await fetchAnalytics();
       closeModal();
-    } catch (err) { handleApiError(err); }
-    finally { setModal((p) => ({ ...p, processing: false })); }
+    } catch (err) {
+      handleApiError(err);
+    } finally {
+      setModal((p) => ({ ...p, processing: false }));
+    }
   };
 
+  // price_per_unit_kobo is in kobo → divide by 100 for naira total
   const totalAmount = useMemo(() => {
     if (!modal.land || !modal.units) return 0;
-    return (modal.units * modal.land.price_per_unit_kobo) / 100;
+    return (Number(modal.units) * Number(modal.land.price_per_unit_kobo || 0)) / 100;
   }, [modal]);
 
-  const formatDate = (d) => new Date(d).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" });
+  const formatDate = (d) =>
+    new Date(d).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" });
 
-  /* ================= LOADING ================= */
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0D1F1A]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <div className="min-h-screen flex items-center justify-center bg-[#0D1F1A]"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}>
         <div className="text-center">
           <div className="w-12 h-12 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin mx-auto mb-4" />
           <p className="text-white/40 text-sm tracking-widest uppercase">Loading portfolio</p>
@@ -112,23 +121,18 @@ export default function Portfolio() {
     );
   }
 
-  /* ================= RENDER ================= */
   return (
-    <div className="min-h-screen bg-[#0D1F1A] relative" style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif" }}>
+    <div className="min-h-screen bg-[#0D1F1A] relative"
+      style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif" }}>
       <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0"
         style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
 
-      <Toaster position="top-right" toastOptions={{
-        success: { style: { background: "#0D1F1A", color: "#6ee7b7", border: "1px solid #065f46" } },
-        error: { style: { background: "#0D1F1A", color: "#fca5a5", border: "1px solid #7f1d1d" } },
-      }} />
-
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-10 space-y-8">
 
-        {/* Header */}
         <div>
           <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-600 mb-2">Investments</p>
-          <h1 className="text-4xl font-bold text-white" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+          <h1 className="text-4xl font-bold text-white"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             Your Portfolio
           </h1>
           <p className="text-white/40 mt-1 text-sm">Track your land holdings and transactions</p>
@@ -137,15 +141,27 @@ export default function Portfolio() {
         {/* Summary Cards */}
         {summary && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <SummaryCard title="Portfolio Value" value={`₦${koboToNaira(summary.current_portfolio_value_kobo)}`} />
-            <SummaryCard title="Total Invested" value={`₦${koboToNaira(summary.total_invested_kobo)}`} />
+            <SummaryCard
+              title="Portfolio Value"
+              value={`₦${formatNaira(summary.current_portfolio_value)}`}
+            />
+            <SummaryCard
+              title="Current Investment"
+              value={`₦${formatNaira(summary.total_invested)}`}
+            />
             <SummaryCard
               title="Profit / Loss"
-              value={`₦${koboToNaira(summary.total_profit_loss_kobo)}`}
-              positive={Number(summary.total_profit_loss_kobo) >= 0}
+              value={`₦${formatNaira(Math.abs(Number(summary.total_profit_loss || 0)))}`}
+              positive={Number(summary.total_profit_loss) >= 0}
+              signed
+              prefix={Number(summary.total_profit_loss) >= 0 ? "+" : "-"}
+            />
+            <SummaryCard
+              title="ROI"
+              value={`${Number(summary.profit_loss_percent || 0).toFixed(2)}%`}
+              positive={Number(summary.profit_loss_percent) >= 0}
               signed
             />
-            <SummaryCard title="ROI" value={`${summary.profit_loss_percent || 0}%`} positive={Number(summary.profit_loss_percent) >= 0} signed />
           </div>
         )}
 
@@ -167,14 +183,16 @@ export default function Portfolio() {
         ) : (
           <div className="grid md:grid-cols-2 gap-5">
             {lands.map((land) => (
-              <div key={land.land_id} className="rounded-2xl border border-white/10 bg-white/5 p-5 hover:border-white/20 transition-all">
-                <h2 className="font-bold text-white text-lg mb-4" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              <div key={land.land_id}
+                className="rounded-2xl border border-white/10 bg-white/5 p-5 hover:border-white/20 transition-all">
+                <h2 className="font-bold text-white text-lg mb-4"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                   {land.land_name}
                 </h2>
                 <div className="space-y-2 mb-5">
                   <Row label="Units Owned" value={land.units_owned} />
                   <Row label="Price per Unit" value={`₦${koboToNaira(land.price_per_unit_kobo)}`} />
-                  <Row label="Current Value" value={`₦${Number(land.current_value || 0).toLocaleString()}`} accent />
+                  <Row label="Current Value" value={`₦${formatNaira(land.current_value)}`} accent />
                 </div>
                 <div className="flex gap-3">
                   <button
@@ -215,9 +233,10 @@ export default function Portfolio() {
                   {paginatedTx.map((t, i) => {
                     const isPurchase = t.type === "Purchase";
                     return (
-                      <div key={i} className="flex justify-between items-center rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3 hover:border-white/15 transition-all">
+                      <div key={i}
+                        className="flex justify-between items-center rounded-xl border border-white/8 bg-white/3 px-4 py-3 hover:border-white/15 transition-all">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${isPurchase ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isPurchase ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
                             {isPurchase
                               ? <TrendingUp size={14} className="text-emerald-400" />
                               : <TrendingDown size={14} className="text-red-400" />}
@@ -233,7 +252,7 @@ export default function Portfolio() {
                         </div>
                         <div className="text-right">
                           <p className={`font-bold text-sm ${isPurchase ? "text-emerald-400" : "text-red-400"}`}>
-                            {isPurchase ? "-" : "+"}₦{t.amount.toLocaleString()}
+                            {isPurchase ? "-" : "+"}₦{formatNaira(t.amount)}
                           </p>
                           <p className="text-xs text-white/30">{t.status}</p>
                         </div>
@@ -280,29 +299,32 @@ export default function Portfolio() {
         </div>
       </div>
 
-      {/* ================= TRANSACTION MODAL ================= */}
+      {/* Modal */}
       {modal.type && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="relative w-full max-w-md rounded-2xl border border-white/10 overflow-hidden"
             style={{ background: "#0D1F1A", boxShadow: "0 25px 80px rgba(0,0,0,0.6)" }}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-0.5 capitalize">{modal.type}</p>
-                <h2 className="text-xl font-bold text-white" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                <p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-0.5">{modal.type}</p>
+                <h2 className="text-xl font-bold text-white"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                   {modal.land?.land_name}
                 </h2>
               </div>
-              <button onClick={closeModal} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all">
+              <button onClick={closeModal}
+                className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all">
                 <X size={14} />
               </button>
             </div>
 
             <form onSubmit={handleTransaction} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">Number of Units</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">
+                  Number of Units
+                </label>
                 <input
-                  type="number"
-                  min={1}
+                  type="number" min={1}
                   value={modal.units}
                   onChange={(e) => setModal((p) => ({ ...p, units: e.target.value }))}
                   className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-3 rounded-xl text-sm outline-none transition-all"
@@ -315,18 +337,19 @@ export default function Portfolio() {
                   <p className="text-xs text-amber-500/70 uppercase tracking-widest mb-1">
                     {modal.type === "buy" ? "Total to Pay" : "You'll Receive"}
                   </p>
-                  <p className="text-2xl font-bold text-amber-400" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                    ₦{totalAmount.toLocaleString()}
+                  <p className="text-2xl font-bold text-amber-400"
+                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    ₦{formatNaira(totalAmount)}
                   </p>
                 </div>
               )}
 
               <div>
-                <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">Transaction PIN</label>
+                <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">
+                  Transaction PIN
+                </label>
                 <input
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={4}
+                  type="password" inputMode="numeric" maxLength={4}
                   value={modal.pin}
                   onChange={(e) => setModal((p) => ({ ...p, pin: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
                   className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-3 rounded-xl text-center text-2xl tracking-[0.5em] outline-none transition-all"
@@ -339,7 +362,8 @@ export default function Portfolio() {
                   className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 text-sm font-semibold transition-all">
                   Cancel
                 </button>
-                <button type="submit" disabled={modal.processing || !modal.units || !modal.pin}
+                <button type="submit"
+                  disabled={modal.processing || !modal.units || !modal.pin}
                   className="flex-1 py-3 rounded-xl font-bold text-[#0D1F1A] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}>
                   {modal.processing ? (
@@ -358,15 +382,14 @@ export default function Portfolio() {
   );
 }
 
-/* ================= SUB-COMPONENTS ================= */
-function SummaryCard({ title, value, positive, signed }) {
+function SummaryCard({ title, value, positive, signed, prefix }) {
   const color = signed
     ? positive ? "text-emerald-400" : "text-red-400"
     : "text-amber-400";
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
       <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-1">{title}</p>
-      <p className={`text-xl font-bold ${color}`}>{value}</p>
+      <p className={`text-xl font-bold ${color}`}>{prefix}{value}</p>
     </div>
   );
 }
