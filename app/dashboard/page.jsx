@@ -171,8 +171,8 @@ export default function Dashboard() {
             : (
               <>
                 <StatCard icon={<Wallet size={18} />}    label="Total Balance"   value={formatNairaShort(stats?.balance)}         full={`₦${Number(stats?.balance ?? 0).toLocaleString()}`}         accent="amber"   />
-                <StatCard icon={<TrendingUp size={18} />} label="Invested"        value={formatNairaShort(stats?.total_invested)}  full={`₦${Number(stats?.total_invested ?? 0).toLocaleString()}`}  accent="emerald" />
-                <StatCard icon={<MapPin size={18} />}     label="Lands Owned"     value={stats?.lands_owned ?? 0}                  sub={`${stats?.units_owned ?? 0} total units`}                     accent="blue"    />
+                <StatCard icon={<TrendingUp size={18} />} label="Current Investment"        value={formatNairaShort(stats?.total_invested)}  full={`₦${Number(stats?.total_invested ?? 0).toLocaleString()}`}  accent="emerald" />
+                <StatCard icon={<MapPin size={18} />}     label="Lands with Units Owned"     value={stats?.lands_owned ?? 0}                  sub={`${stats?.units_owned ?? 0} total units`}                     accent="blue"    />
                 <StatCard icon={<Activity size={18} />}   label="Total Withdrawn" value={formatNairaShort(stats?.total_withdrawn)} sub={`${stats?.pending_withdrawals ?? 0} pending`}                accent="purple"  />
               </>
             )}
