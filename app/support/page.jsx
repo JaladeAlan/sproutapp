@@ -25,8 +25,11 @@ const AMBER     = "#C8873A";
 const AMBER2    = "#E8A850";
 const MUTED     = "rgba(255,255,255,0.35)";
 const DIMMED    = "rgba(255,255,255,0.18)";
+// Solid dark background for native <select> dropdowns —
+// rgba/opacity values don't work on <option> elements in any browser
+const SELECT_BG = "#0f2318";
 
-const grad  = `linear-gradient(135deg, ${AMBER} 0%, ${AMBER2} 100%)`;
+const grad = `linear-gradient(135deg, ${AMBER} 0%, ${AMBER2} 100%)`;
 
 /* ── Shared styles ─────────────────────────────────────────────────────────── */
 const inp =
@@ -39,28 +42,28 @@ const lbl = "block text-[10px] font-bold text-white/30 uppercase tracking-[0.15e
 
 /* ── Category config ───────────────────────────────────────────────────────── */
 const CATEGORIES = [
-  { value: "account",    label: "Account & Profile",   icon: <User size={13} />,       color: "text-violet-400 bg-violet-500/10 border-violet-500/20"  },
-  { value: "payment",    label: "Deposits & Payments", icon: <CreditCard size={13} />, color: "text-blue-400 bg-blue-500/10 border-blue-500/20"        },
-  { value: "withdrawal", label: "Withdrawals",          icon: <Landmark size={13} />,   color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"        },
-  { value: "kyc",        label: "KYC Verification",    icon: <Shield size={13} />,     color: "text-amber-400 bg-amber-500/10 border-amber-500/20"     },
-  { value: "investment", label: "Land & Investment",   icon: <TrendingUp size={13} />, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"},
-  { value: "other",      label: "Other",                icon: <MoreHorizontal size={13} />, color: "text-white/40 bg-white/5 border-white/10"          },
+  { value: "account",    label: "Account & Profile",   icon: <User size={13} />,           color: "text-violet-400 bg-violet-500/10 border-violet-500/20"   },
+  { value: "payment",    label: "Deposits & Payments", icon: <CreditCard size={13} />,     color: "text-blue-400 bg-blue-500/10 border-blue-500/20"          },
+  { value: "withdrawal", label: "Withdrawals",          icon: <Landmark size={13} />,       color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"          },
+  { value: "kyc",        label: "KYC Verification",    icon: <Shield size={13} />,         color: "text-amber-400 bg-amber-500/10 border-amber-500/20"       },
+  { value: "investment", label: "Land & Investment",   icon: <TrendingUp size={13} />,     color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
+  { value: "other",      label: "Other",                icon: <MoreHorizontal size={13} />, color: "text-white/40 bg-white/5 border-white/10"                 },
 ];
 
 const catCfg = (v) => CATEGORIES.find(c => c.value === v) || CATEGORIES[5];
 
 /* ── Status config ─────────────────────────────────────────────────────────── */
 const statusCfg = (s = "") => ({
-  open:     { cls: "text-amber-400 bg-amber-500/10 border-amber-500/20",     dot: "#F59E0B", icon: <Clock size={10} />,       label: "Open"     },
-  waiting:  { cls: "text-blue-400 bg-blue-500/10 border-blue-500/20",        dot: "#60A5FA", icon: <AlertCircle size={10} />, label: "Waiting"  },
+  open:     { cls: "text-amber-400 bg-amber-500/10 border-amber-500/20",       dot: "#F59E0B", icon: <Clock size={10} />,       label: "Open"     },
+  waiting:  { cls: "text-blue-400 bg-blue-500/10 border-blue-500/20",          dot: "#60A5FA", icon: <AlertCircle size={10} />, label: "Waiting"  },
   resolved: { cls: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", dot: "#34D399", icon: <CheckCircle size={10} />, label: "Resolved" },
-  closed:   { cls: "text-white/30 bg-white/5 border-white/10",               dot: "#6B7280", icon: <XCircle size={10} />,     label: "Closed"   },
+  closed:   { cls: "text-white/30 bg-white/5 border-white/10",                 dot: "#6B7280", icon: <XCircle size={10} />,     label: "Closed"   },
 }[s] || { cls: "text-white/30 bg-white/5 border-white/10", dot: "#6B7280", icon: <XCircle size={10} />, label: "Closed" });
 
 const priorityCfg = (p = "") => ({
-  high:   { cls: "text-red-400 bg-red-500/10 border-red-500/20",    label: "High"   },
-  normal: { cls: "text-white/35 bg-white/[0.04] border-white/10",   label: "Normal" },
-  low:    { cls: "text-white/20 bg-white/[0.02] border-white/[0.06]", label: "Low"  },
+  high:   { cls: "text-red-400 bg-red-500/10 border-red-500/20",      label: "High"   },
+  normal: { cls: "text-white/35 bg-white/[0.04] border-white/10",     label: "Normal" },
+  low:    { cls: "text-white/20 bg-white/[0.02] border-white/[0.06]", label: "Low"    },
 }[p] || { cls: "text-white/35 bg-white/[0.04] border-white/10", label: "Normal" });
 
 const fmtDate = (d) =>
@@ -73,7 +76,7 @@ function Pill({ active, onClick, children, "data-tab": dataTab }) {
       onClick={onClick}
       data-tab={dataTab}
       className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
-        active ? "text-[#0A1A13] shadow-lg" : "border border-white/8 bg-whbg-white/4-white/40 hover:text-white hover:bg-white/8"
+        active ? "text-[#0A1A13] shadow-lg" : "border border-white/8 text-white/40 hover:text-white hover:bg-white/8"
       }`}
       style={active ? { background: grad } : {}}
     >
@@ -103,15 +106,15 @@ export default function SupportPage() {
 
   const openDetail = (id) => { setSelectedId(id); setView("detail"); };
 
-  const authTabs    = [
-    { id: "chat",    icon: <Bot size={14} />,         label: "AI Chat"    },
-    { id: "list",    icon: <Ticket size={14} />,      label: "My Tickets" },
-    { id: "new",     icon: <Plus size={14} />,         label: "New Ticket" },
-    { id: "faq",     icon: <HelpCircle size={14} />,   label: "FAQ"        },
-  ];
-  const guestTabs   = [
+  const authTabs  = [
+    { id: "chat",    icon: <Bot size={14} />,        label: "AI Chat"    },
+    { id: "list",    icon: <Ticket size={14} />,     label: "My Tickets" },
+    { id: "new",     icon: <Plus size={14} />,        label: "New Ticket" },
     { id: "faq",     icon: <HelpCircle size={14} />,  label: "FAQ"        },
-    { id: "contact", icon: <MailOpen size={14} />,     label: "Contact Us" },
+  ];
+  const guestTabs = [
+    { id: "faq",     icon: <HelpCircle size={14} />, label: "FAQ"        },
+    { id: "contact", icon: <MailOpen size={14} />,    label: "Contact Us" },
   ];
   const tabs = user ? authTabs : guestTabs;
 
@@ -204,7 +207,7 @@ function TicketList({ onOpen, onNew }) {
   const [filter, setFilter]   = useState("all");
 
   const load = async () => {
-    if (!user) return; // never call auth-required API without a user
+    if (!user) return;
     setLoading(true);
     try { setData(await fetchTickets()); }
     catch { toast.error("Could not load tickets."); }
@@ -231,8 +234,6 @@ function TicketList({ onOpen, onNew }) {
 
   return (
     <div className="space-y-5">
-
-      {/* Stats strip */}
       {tickets.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-2">
           {[
@@ -258,7 +259,6 @@ function TicketList({ onOpen, onNew }) {
         </div>
       )}
 
-      {/* Filter bar */}
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-1.5 flex-wrap">
           {["all","open","waiting","resolved","closed"].map(f => (
@@ -281,7 +281,6 @@ function TicketList({ onOpen, onNew }) {
         </button>
       </div>
 
-      {/* Empty state */}
       {filtered.length === 0 ? (
         <div className="rounded-3xl p-16 text-center" style={{ background: SURFACE, border: `1px dashed ${BORDER}` }}>
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
@@ -311,22 +310,14 @@ function TicketList({ onOpen, onNew }) {
               <button key={t.id} onClick={() => onOpen(t.id)}
                 className="w-full rounded-2xl p-4 sm:p-5 text-left group transition-all duration-200"
                 style={{ background: SURFACE, border: `1px solid ${BORDER}` }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = "rgba(255,255,255,0.07)";
-                  e.currentTarget.style.borderColor = BORDER_HV;
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = SURFACE;
-                  e.currentTarget.style.borderColor = BORDER;
-                }}>
+                onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.07)"; e.currentTarget.style.borderColor = BORDER_HV; }}
+                onMouseLeave={e => { e.currentTarget.style.background = SURFACE; e.currentTarget.style.borderColor = BORDER; }}>
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex gap-3.5 flex-1 min-w-0">
-                    {/* Category icon */}
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border text-xs mt-0.5 ${cat.color}`}>
                       {cat.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      {/* Badges */}
                       <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                         <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold border ${s.cls}`}>
                           <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: s.dot }} />
@@ -335,15 +326,11 @@ function TicketList({ onOpen, onNew }) {
                         <span className="text-[10px] font-mono" style={{ color: DIMMED }}>{t.reference}</span>
                       </div>
                       <p className="font-semibold text-sm truncate text-white/80">{t.subject}</p>
-                      <p className="text-xs mt-0.5 capitalize" style={{ color: DIMMED }}>
-                        {cat.label}
-                      </p>
+                      <p className="text-xs mt-0.5 capitalize" style={{ color: DIMMED }}>{cat.label}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0 flex flex-col items-end justify-between gap-2 self-stretch">
-                    <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.18)" }}>
-                      {fmtDate(t.updated_at)}
-                    </p>
+                    <p className="text-[10px]" style={{ color: "rgba(255,255,255,0.18)" }}>{fmtDate(t.updated_at)}</p>
                     <ChevronRight size={13} className="transition-transform group-hover:translate-x-0.5" style={{ color: DIMMED }} />
                   </div>
                 </div>
@@ -385,7 +372,6 @@ function NewTicketForm({ onSuccess }) {
 
   return (
     <div className="max-w-2xl">
-      {/* Header */}
       <div className="rounded-2xl p-5 mb-5 flex items-center gap-4"
         style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
         <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
@@ -405,19 +391,19 @@ function NewTicketForm({ onSuccess }) {
       <div className="rounded-2xl p-6 sm:p-8" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* Subject */}
           <div>
             <label className={lbl}>Subject *</label>
             <input name="subject" value={form.subject} onChange={handleChange}
               placeholder="Brief description of your issue" required className={inp} />
           </div>
 
-          {/* Category + Priority */}
           <div className="grid sm:grid-cols-2 gap-5">
             <div>
               <label className={lbl}>Category *</label>
               <div className="relative">
-                <select name="category" value={form.category} onChange={handleChange} required className={sel}>
+                {/* backgroundColor must be solid — rgba/opacity breaks native <option> rendering */}
+                <select name="category" value={form.category} onChange={handleChange} required
+                  className={sel} style={{ backgroundColor: SELECT_BG }}>
                   <option value="" disabled>Select category</option>
                   {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
@@ -432,7 +418,8 @@ function NewTicketForm({ onSuccess }) {
             <div>
               <label className={lbl}>Priority</label>
               <div className="relative">
-                <select name="priority" value={form.priority} onChange={handleChange} className={sel}>
+                <select name="priority" value={form.priority} onChange={handleChange}
+                  className={sel} style={{ backgroundColor: SELECT_BG }}>
                   <option value="low">Low — general question</option>
                   <option value="normal">Normal</option>
                   <option value="high">High — urgent issue</option>
@@ -442,7 +429,6 @@ function NewTicketForm({ onSuccess }) {
             </div>
           </div>
 
-          {/* Message */}
           <div>
             <label className={lbl}>Message *</label>
             <textarea name="message" value={form.message} onChange={handleChange}
@@ -450,7 +436,6 @@ function NewTicketForm({ onSuccess }) {
               rows={5} required className={inp + " resize-none"} />
           </div>
 
-          {/* Attachment */}
           <div>
             <label className={lbl}>
               Attachment <span className="normal-case font-normal opacity-60">(optional · jpg, png, pdf · max 5 MB)</span>
@@ -532,8 +517,6 @@ function TicketDetail({ id, onBack }) {
 
   return (
     <div className="space-y-4">
-
-      {/* Header card */}
       <div className="rounded-2xl p-5" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex gap-4 flex-1 min-w-0">
@@ -567,10 +550,7 @@ function TicketDetail({ id, onBack }) {
         </div>
       </div>
 
-      {/* Conversation */}
       <div className="rounded-2xl overflow-hidden" style={{ background: "rgba(5,15,10,0.8)", border: `1px solid ${BORDER}` }}>
-
-        {/* Thread header */}
         <div className="flex items-center gap-2.5 px-5 py-3.5 border-b"
           style={{ borderColor: BORDER, background: SURFACE }}>
           <MessageSquare size={13} style={{ color: AMBER }} />
@@ -579,31 +559,25 @@ function TicketDetail({ id, onBack }) {
           </span>
         </div>
 
-        {/* Messages */}
         <div className="px-5 py-5 space-y-5 overflow-y-auto" style={{ maxHeight: 460 }}>
           {ticket.messages?.map((m, i) => {
             const isUser  = m.sender_type === "user";
             const isAgent = m.sender_type === "agent";
             return (
               <div key={m.id ?? i} className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
-                {/* Avatar */}
                 <div
                   className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black ${
-                    isUser  ? "text-[#0A1A13]" :
-                    isAgent ? "text-blue-400"   : "text-amber-500"
+                    isUser ? "text-[#0A1A13]" : isAgent ? "text-blue-400" : "text-amber-500"
                   }`}
                   style={{
                     background: isUser  ? grad :
-                                isAgent ? "rgba(96,165,250,0.12)" :
-                                          "rgba(200,135,58,0.12)",
+                                isAgent ? "rgba(96,165,250,0.12)" : "rgba(200,135,58,0.12)",
                     border: isUser ? "none" :
-                            isAgent ? "1px solid rgba(96,165,250,0.2)" :
-                                      "1px solid rgba(200,135,58,0.2)",
+                            isAgent ? "1px solid rgba(96,165,250,0.2)" : "1px solid rgba(200,135,58,0.2)",
                   }}
                 >
                   {isUser ? (user?.name?.[0]?.toUpperCase() || "U") : isAgent ? "A" : <Bot size={13} />}
                 </div>
-                {/* Bubble */}
                 <div className={`max-w-[76%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
                   <div
                     className={`px-4 py-3 text-sm leading-relaxed ${
@@ -632,7 +606,6 @@ function TicketDetail({ id, onBack }) {
           <div ref={bottomRef} />
         </div>
 
-        {/* Reply / closed footer */}
         {!isClosed ? (
           <div className="border-t px-5 py-4" style={{ borderColor: BORDER, background: SURFACE }}>
             <form onSubmit={handleReply} className="space-y-3">
@@ -674,20 +647,20 @@ function TicketDetail({ id, onBack }) {
    FAQ VIEW
 ══════════════════════════════════════════════════════════════════════════════ */
 const FAQ_CATEGORY_ICONS = {
-  account:    { icon: <User size={13} />,         color: "text-violet-400 bg-violet-500/10 border-violet-500/20"   },
-  payment:    { icon: <CreditCard size={13} />,   color: "text-blue-400 bg-blue-500/10 border-blue-500/20"         },
-  withdrawal: { icon: <Landmark size={13} />,     color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"         },
-  kyc:        { icon: <Shield size={13} />,       color: "text-amber-400 bg-amber-500/10 border-amber-500/20"      },
-  investment: { icon: <TrendingUp size={13} />,   color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"},
-  general:    { icon: <HelpCircle size={13} />,   color: "text-white/40 bg-white/5 border-white/10"                },
+  account:    { icon: <User size={13} />,       color: "text-violet-400 bg-violet-500/10 border-violet-500/20"   },
+  payment:    { icon: <CreditCard size={13} />, color: "text-blue-400 bg-blue-500/10 border-blue-500/20"         },
+  withdrawal: { icon: <Landmark size={13} />,   color: "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"         },
+  kyc:        { icon: <Shield size={13} />,     color: "text-amber-400 bg-amber-500/10 border-amber-500/20"      },
+  investment: { icon: <TrendingUp size={13} />, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"},
+  general:    { icon: <HelpCircle size={13} />, color: "text-white/40 bg-white/5 border-white/10"                },
 };
 
 function FaqView({ onContact }) {
-  const { user }                = useAuth();
-  const [faqs, setFaqs]         = useState({});
-  const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState("");
-  const [expanded, setExpanded] = useState(null);
+  const { user }                  = useAuth();
+  const [faqs, setFaqs]           = useState({});
+  const [loading, setLoading]     = useState(true);
+  const [search, setSearch]       = useState("");
+  const [expanded, setExpanded]   = useState(null);
   const [activeTab, setActiveTab] = useState("all");
 
   useEffect(() => {
@@ -710,8 +683,6 @@ function FaqView({ onContact }) {
 
   return (
     <div className="space-y-6">
-
-      {/* Search bar */}
       <div className="relative">
         <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: DIMMED }} />
         <input
@@ -722,18 +693,16 @@ function FaqView({ onContact }) {
         />
       </div>
 
-      {/* Category tabs */}
       {!loading && categories.length > 0 && (
         <div className="flex gap-2 flex-wrap">
           {["all", ...categories].map(c => {
-            const cfg  = FAQ_CATEGORY_ICONS[c] || FAQ_CATEGORY_ICONS.general;
+            const cfg    = FAQ_CATEGORY_ICONS[c] || FAQ_CATEGORY_ICONS.general;
             const isActive = activeTab === c;
             return (
               <button key={c} onClick={() => { setActiveTab(c); setExpanded(null); }}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize border transition-all duration-200 ${
-                  isActive ? `${cfg.color}` : "bg-white/4 border-white/8 text-white/35 hover:text-white"
-                }`}
-                style={isActive ? {} : {}}>
+                  isActive ? cfg.color : "bg-white/4 border-white/8 text-white/35 hover:text-white"
+                }`}>
                 {c !== "all" && <span>{cfg.icon}</span>}
                 {c === "all" ? "All Topics" : c}
               </button>
@@ -742,7 +711,6 @@ function FaqView({ onContact }) {
         </div>
       )}
 
-      {/* FAQ list */}
       {loading ? (
         <div className="space-y-2.5">
           {[1,2,3,4,5].map(i => (
@@ -757,7 +725,7 @@ function FaqView({ onContact }) {
       ) : (
         <div className="space-y-2">
           {filtered.map((f, i) => {
-            const cfg = FAQ_CATEGORY_ICONS[f.category] || FAQ_CATEGORY_ICONS.general;
+            const cfg    = FAQ_CATEGORY_ICONS[f.category] || FAQ_CATEGORY_ICONS.general;
             const isOpen = expanded === i;
             return (
               <div key={f.id ?? i}
@@ -787,7 +755,6 @@ function FaqView({ onContact }) {
         </div>
       )}
 
-      {/* "Didn't find answer" nudge */}
       {!loading && (
         <div className="rounded-2xl p-5 flex items-center justify-between gap-4 flex-wrap mt-2"
           style={{ background: "rgba(200,135,58,0.05)", border: "1px solid rgba(200,135,58,0.15)" }}>
@@ -857,15 +824,12 @@ function GuestContactForm() {
             Message received!
           </h2>
           <p className="text-sm mt-2" style={{ color: MUTED }}>
-            We'll reply to{" "}
-            <span className="text-white font-semibold">{form.email}</span>{" "}
-            within 24 hours.
+            We'll reply to <span className="text-white font-semibold">{form.email}</span> within 24 hours.
           </p>
           {reference && (
             <div className="inline-flex items-center gap-2.5 mt-4 px-4 py-2.5 rounded-xl text-xs font-mono"
               style={{ background: "rgba(255,255,255,0.05)", border: `1px solid ${BORDER}`, color: MUTED }}>
-              Your reference:{" "}
-              <span className="font-black" style={{ color: AMBER }}>{reference}</span>
+              Your reference: <span className="font-black" style={{ color: AMBER }}>{reference}</span>
             </div>
           )}
         </div>
@@ -882,7 +846,6 @@ function GuestContactForm() {
 
   return (
     <div className="max-w-2xl">
-      {/* Header */}
       <div className="rounded-2xl p-5 mb-5 flex items-center justify-between gap-4"
         style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
         <div className="flex items-center gap-4">
@@ -894,9 +857,7 @@ function GuestContactForm() {
             <h2 className="font-bold text-white" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               Contact Support
             </h2>
-            <p className="text-xs mt-0.5" style={{ color: DIMMED }}>
-              No account needed · We reply within 24 hours
-            </p>
+            <p className="text-xs mt-0.5" style={{ color: DIMMED }}>No account needed · We reply within 24 hours</p>
           </div>
         </div>
         <Link href="/login"
@@ -909,7 +870,6 @@ function GuestContactForm() {
       <div className="rounded-2xl p-6 sm:p-8" style={{ background: SURFACE, border: `1px solid ${BORDER}` }}>
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* Name + Email */}
           <div className="grid sm:grid-cols-2 gap-5">
             <div>
               <label className={lbl}>Your Name *</label>
@@ -923,12 +883,13 @@ function GuestContactForm() {
             </div>
           </div>
 
-          {/* Topic + Subject */}
           <div className="grid sm:grid-cols-2 gap-5">
             <div>
               <label className={lbl}>Topic *</label>
               <div className="relative">
-                <select name="category" value={form.category} onChange={handleChange} required className={sel}>
+                {/* solid backgroundColor required for native <option> elements to be visible */}
+                <select name="category" value={form.category} onChange={handleChange} required
+                  className={sel} style={{ backgroundColor: SELECT_BG }}>
                   <option value="" disabled>Select topic</option>
                   {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
@@ -942,7 +903,6 @@ function GuestContactForm() {
             </div>
           </div>
 
-          {/* Message */}
           <div>
             <label className={lbl}>Message *</label>
             <textarea name="message" value={form.message} onChange={handleChange}
@@ -950,7 +910,6 @@ function GuestContactForm() {
               rows={5} required className={inp + " resize-none"} />
           </div>
 
-          {/* Attachment */}
           <div>
             <label className={lbl}>
               Attachment <span className="normal-case font-normal opacity-60">(optional · jpg, png, pdf · max 5 MB)</span>
@@ -1002,10 +961,10 @@ function AiChatView() {
       content: `Hi ${user?.name?.split(" ")[0] || "there"}! I'm your Sproutvest assistant. Ask me anything about your account, investments, deposits, KYC, or anything else — I'm here to help.`,
     },
   ]);
-  const [input, setInput]       = useState("");
-  const [loading, setLoading]   = useState(false);
-  const bottomRef               = useRef(null);
-  const textareaRef             = useRef(null);
+  const [input, setInput]     = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef             = useRef(null);
+  const textareaRef           = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -1043,11 +1002,9 @@ function AiChatView() {
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - 280px)", minHeight: 480, maxHeight: 700 }}>
 
-      {/* Header banner */}
       <div className="rounded-2xl p-4 mb-4 flex items-center gap-4"
         style={{ background: "rgba(200,135,58,0.07)", border: "1px solid rgba(200,135,58,0.18)" }}>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: grad }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: grad }}>
           <Sparkles size={18} className="text-[#0A1A13]" />
         </div>
         <div>
@@ -1062,11 +1019,9 @@ function AiChatView() {
         </div>
       </div>
 
-      {/* Quick replies */}
       <div className="flex gap-2 flex-wrap mb-3">
         {FAQ_QUICK_REPLIES.map(q => (
-          <button key={q} onClick={() => send(q)}
-            disabled={loading}
+          <button key={q} onClick={() => send(q)} disabled={loading}
             className="text-xs px-3 py-1.5 rounded-xl border transition-all duration-200 disabled:opacity-40"
             style={{ background: SURFACE, border: `1px solid ${BORDER}`, color: MUTED }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(200,135,58,0.35)"; e.currentTarget.style.color = AMBER; }}
@@ -1076,15 +1031,12 @@ function AiChatView() {
         ))}
       </div>
 
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto rounded-2xl p-5 space-y-4"
         style={{ background: "rgba(5,15,10,0.7)", border: `1px solid ${BORDER}` }}>
-
         {messages.map((m, i) => {
           const isUser = m.role === "user";
           return (
             <div key={i} className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
-              {/* Avatar */}
               <div
                 className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black"
                 style={isUser
@@ -1094,8 +1046,6 @@ function AiChatView() {
               >
                 {isUser ? (user?.name?.[0]?.toUpperCase() || "U") : <Bot size={13} />}
               </div>
-
-              {/* Bubble */}
               <div className={`max-w-[76%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
                 <div
                   className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
@@ -1111,16 +1061,13 @@ function AiChatView() {
                   {m.content}
                 </div>
                 {!isUser && (
-                  <p className="text-[10px] px-1" style={{ color: "rgba(255,255,255,0.18)" }}>
-                    AI Assistant
-                  </p>
+                  <p className="text-[10px] px-1" style={{ color: "rgba(255,255,255,0.18)" }}>AI Assistant</p>
                 )}
               </div>
             </div>
           );
         })}
 
-        {/* Typing indicator */}
         {loading && (
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
@@ -1136,11 +1083,9 @@ function AiChatView() {
             </div>
           </div>
         )}
-
         <div ref={bottomRef} />
       </div>
 
-      {/* Input row */}
       <div className="mt-3">
         <div className="flex gap-2.5 items-end">
           <textarea
@@ -1151,21 +1096,13 @@ function AiChatView() {
             placeholder="Ask anything about your account, investments, or payments… (Enter to send)"
             rows={1}
             className="flex-1 resize-none rounded-2xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-none transition-all duration-200"
-            style={{
-              background: SURFACE,
-              border: `1px solid ${BORDER}`,
-              maxHeight: 100,
-              lineHeight: 1.5,
-            }}
+            style={{ background: SURFACE, border: `1px solid ${BORDER}`, maxHeight: 100, lineHeight: 1.5 }}
             onFocus={e => e.currentTarget.style.borderColor = "rgba(200,135,58,0.6)"}
             onBlur={e => e.currentTarget.style.borderColor = BORDER}
           />
-          <button
-            onClick={() => send()}
-            disabled={!input.trim() || loading}
+          <button onClick={() => send()} disabled={!input.trim() || loading}
             className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95 disabled:opacity-35 disabled:cursor-not-allowed"
-            style={{ background: grad, color: "#0A1A13" }}
-          >
+            style={{ background: grad, color: "#0A1A13" }}>
             <Send size={16} />
           </button>
         </div>

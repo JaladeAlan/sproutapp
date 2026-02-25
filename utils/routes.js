@@ -3,6 +3,7 @@
  * "guest" / marketing shell (no Header / Footer).
  */
 export const GUEST_ROUTES = [
+  "/",
   "/login",
   "/register",
   "/forgot-password",
