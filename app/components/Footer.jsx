@@ -1,34 +1,39 @@
+"use client";
+
 import Link from "next/link";
 import { MapPin, Mail, Phone } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const footerLinks = [
   {
     heading: "Platform",
     links: [
-      { label: "Browse Lands",  href: "/lands"     },
-      { label: "Portfolio",     href: "/portfolio" },
-      { label: "Wallet",        href: "/wallet"    },
-      { label: "Referrals",     href: "/referrals" },
+      { label: "Browse Lands", href: "/lands"                    },
+      { label: "Portfolio",    href: "/portfolio", authOnly: true },
+      { label: "Wallet",       href: "/wallet",    authOnly: true },
+      { label: "Referrals",    href: "/referrals", authOnly: true },
     ],
   },
   {
     heading: "Account",
     links: [
-      { label: "Dashboard",  href: "/dashboard" },
-      { label: "Settings",   href: "/settings"  },
-      { label: "Support",    href: "/support"   },
+      { label: "Dashboard", href: "/dashboard", authOnly: true },
+      { label: "Settings",  href: "/settings",  authOnly: true },
+      { label: "Support",   href: "/support"                   },
     ],
   },
   {
     heading: "Legal",
     links: [
-      { label: "Privacy Policy",    href: "/privacy"  },
-      { label: "Terms of Service",  href: "/terms"    },
+      { label: "Privacy Policy",   href: "/privacy" },
+      { label: "Terms of Service", href: "/terms"   },
     ],
   },
 ];
 
 export default function Footer() {
+  const { user } = useAuth();
+
   return (
     <footer
       className="relative border-t border-white/8 overflow-hidden"
@@ -48,7 +53,7 @@ export default function Footer() {
 
           {/* Brand column */}
           <div>
-            <Link href="/dashboard" className="inline-flex items-center gap-2.5 mb-4 group">
+            <Link href={user ? "/dashboard" : "/"} className="inline-flex items-center gap-2.5 mb-4 group">
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-[#0D1F1A] font-black text-sm"
                 style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}
@@ -70,8 +75,8 @@ export default function Footer() {
             <div className="space-y-2.5">
               {[
                 { icon: <MapPin size={13} />, text: "Ibadan, Oyo State, Nigeria" },
-                { icon: <Mail size={13} />,   text: "hello@sproutvest.com" },
-                { icon: <Phone size={13} />,  text: "+234 800 000 0000" },
+                { icon: <Mail size={13} />,   text: "hello@sproutvest.com"       },
+                { icon: <Phone size={13} />,  text: "+234 800 000 0000"          },
               ].map((item) => (
                 <div key={item.text} className="flex items-center gap-2.5 text-white/30 text-xs">
                   <span className="text-amber-600/70">{item.icon}</span>
@@ -81,26 +86,29 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Link columns */}
-          {footerLinks.map((col) => (
-            <div key={col.heading}>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/25 mb-4">
-                {col.heading}
-              </p>
-              <ul className="space-y-2.5">
-                {col.links.map((link) => (
-                  <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm text-white/40 hover:text-white transition-colors"
-                    >
-                      {link.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {/* Link columns — authOnly links hidden when no user, same as Header nav */}
+          {footerLinks.map((col) => {
+            const visibleLinks = col.links.filter((l) => !l.authOnly || user);
+            return (
+              <div key={col.heading}>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-white/25 mb-4">
+                  {col.heading}
+                </p>
+                <ul className="space-y-2.5">
+                  {visibleLinks.map((link) => (
+                    <li key={link.href}>
+                      <Link
+                        href={link.href}
+                        className="text-sm text-white/40 hover:text-white transition-colors"
+                      >
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
 
         {/* Bottom bar */}
@@ -108,9 +116,29 @@ export default function Footer() {
           <p className="text-xs text-white/20">
             © {new Date().getFullYear()} Sproutvest. All rights reserved.
           </p>
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs text-white/20">La Jade</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-white/20">crafted by</span>
+            <span
+              style={{
+                fontFamily: "'Great Vibes', cursive",
+                fontSize: "1.15rem",
+                background: "linear-gradient(90deg, #C8873A, #E8A850, #C8873A)",
+                backgroundSize: "200% auto",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+                animation: "shimmer 3s linear infinite",
+              }}
+            >
+              La Jade
+            </span>
+            <style>{`
+              @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
+              @keyframes shimmer {
+                0%   { background-position: 0% center; }
+                100% { background-position: 200% center; }
+              }
+            `}</style>
           </div>
         </div>
       </div>

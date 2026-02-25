@@ -347,16 +347,6 @@ export default async function Homepage() {
             <FaqSection />
           </div>
         </section>
-
-        {/* FOOTER */}
-        <footer className="bg-[#0D1F1A] border-t border-white/10 py-10 px-6 text-center">
-          <p className="text-white/30 text-sm">
-            © {new Date().getFullYear()} Sproutvest. All rights reserved. &nbsp;·&nbsp;
-            <Link href="/terms" className="hover:text-white/60 transition-colors">Terms</Link>
-            &nbsp;·&nbsp;
-            <Link href="/privacy" className="hover:text-white/60 transition-colors">Privacy</Link>
-          </p>
-        </footer>
       </main>
     </>
   );
