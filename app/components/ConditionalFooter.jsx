@@ -2,15 +2,15 @@
 
 import { usePathname } from "next/navigation";
 import Footer from "./Footer";
-import { GUEST_ROUTES } from "../../utils/routes";
+import { NAV_HIDDEN_ROUTES } from "../../utils/routes";
 
 export default function ConditionalFooter() {
   const pathname = usePathname();
 
-  const isGuestPage = GUEST_ROUTES.some(
+  const hideNav = NAV_HIDDEN_ROUTES.some(
     (route) => pathname === route || pathname.startsWith(route + "/")
   );
 
-  if (isGuestPage) return null;
+  if (hideNav) return null;
   return <Footer />;
 }

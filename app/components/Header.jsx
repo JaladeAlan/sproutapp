@@ -17,6 +17,7 @@ const links = [
   { name: "Portfolio", path: "/portfolio" },
   { name: "Settings",  path: "/settings"  },
   { name: "Support",   path: "/support"   },
+  { name: "Referrals",   path: "/referrals"},
 ];
 
 export default function Header() {
