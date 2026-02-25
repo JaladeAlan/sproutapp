@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import {
   fetchTickets, fetchTicket, createTicket, createGuestTicket,
-  replyToTicket, fetchFaqs,
+  replyToTicket, fetchFaqs, sendChatMessage,
 } from "../../services/supportService";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
@@ -73,7 +73,7 @@ function Pill({ active, onClick, children, "data-tab": dataTab }) {
       onClick={onClick}
       data-tab={dataTab}
       className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 ${
-        active ? "text-[#0A1A13] shadow-lg" : "border border-white/8 bg-white/4 text-white/40 hover:text-white hover:bg-white/8"
+        active ? "text-[#0A1A13] shadow-lg" : "border border-white/8 bg-whbg-white/4-white/40 hover:text-white hover:bg-white/8"
       }`}
       style={active ? { background: grad } : {}}
     >
@@ -92,7 +92,7 @@ export default function SupportPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    setView(user ? "list" : "faq");
+    setView(user ? "chat" : "faq");
   }, [authLoading, user]);
 
   if (view === "init") return (
@@ -104,9 +104,10 @@ export default function SupportPage() {
   const openDetail = (id) => { setSelectedId(id); setView("detail"); };
 
   const authTabs    = [
-    { id: "list",    icon: <Ticket size={14} />,     label: "My Tickets" },
-    { id: "new",     icon: <Plus size={14} />,        label: "New Ticket" },
-    { id: "faq",     icon: <HelpCircle size={14} />,  label: "FAQ"        },
+    { id: "chat",    icon: <Bot size={14} />,         label: "AI Chat"    },
+    { id: "list",    icon: <Ticket size={14} />,      label: "My Tickets" },
+    { id: "new",     icon: <Plus size={14} />,         label: "New Ticket" },
+    { id: "faq",     icon: <HelpCircle size={14} />,   label: "FAQ"        },
   ];
   const guestTabs   = [
     { id: "faq",     icon: <HelpCircle size={14} />,  label: "FAQ"        },
@@ -182,6 +183,7 @@ export default function SupportPage() {
         </div>
 
         {/* ── Views ── */}
+        {view === "chat"    && <AiChatView />}
         {view === "list"    && <TicketList onOpen={openDetail} onNew={() => setView("new")} />}
         {view === "new"     && <NewTicketForm onSuccess={(id) => { setSelectedId(id); setView("detail"); }} />}
         {view === "detail"  && <TicketDetail id={selectedId} onBack={() => setView("list")} />}
@@ -196,18 +198,20 @@ export default function SupportPage() {
    TICKET LIST
 ══════════════════════════════════════════════════════════════════════════════ */
 function TicketList({ onOpen, onNew }) {
+  const { user }              = useAuth();
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter]   = useState("all");
 
   const load = async () => {
+    if (!user) return; // never call auth-required API without a user
     setLoading(true);
     try { setData(await fetchTickets()); }
     catch { toast.error("Could not load tickets."); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [user]);
 
   const tickets  = data?.data || [];
   const filtered = filter === "all" ? tickets : tickets.filter(t => t.status === filter);
@@ -973,6 +977,201 @@ function GuestContactForm() {
             {loading ? <><Loader2 size={15} className="animate-spin" />Sending…</> : <><Send size={15} />Send Message</>}
           </button>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   AI CHAT VIEW
+══════════════════════════════════════════════════════════════════════════════ */
+const FAQ_QUICK_REPLIES = [
+  "How do I fund my wallet?",
+  "How do I complete KYC?",
+  "How long do withdrawals take?",
+  "How do I reset my PIN?",
+  "How do I buy land units?",
+  "How do I sell my units?",
+];
+
+function AiChatView() {
+  const { user } = useAuth();
+  const [messages, setMessages] = useState([
+    {
+      role: "assistant",
+      content: `Hi ${user?.name?.split(" ")[0] || "there"}! I'm your Sproutvest assistant. Ask me anything about your account, investments, deposits, KYC, or anything else — I'm here to help.`,
+    },
+  ]);
+  const [input, setInput]       = useState("");
+  const [loading, setLoading]   = useState(false);
+  const bottomRef               = useRef(null);
+  const textareaRef             = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  const send = async (text) => {
+    const content = (text || input).trim();
+    if (!content || loading) return;
+    setInput("");
+
+    const next = [...messages, { role: "user", content }];
+    setMessages(next);
+    setLoading(true);
+
+    try {
+      const history = next.slice(-12).map(m => ({ role: m.role, content: m.content }));
+      const reply   = await sendChatMessage(history);
+      setMessages(prev => [...prev, { role: "assistant", content: reply }]);
+    } catch {
+      setMessages(prev => [...prev, {
+        role: "assistant",
+        content: "Sorry, I ran into an issue. Please try again or submit a ticket.",
+        isError: true,
+      }]);
+    } finally {
+      setLoading(false);
+      setTimeout(() => textareaRef.current?.focus(), 100);
+    }
+  };
+
+  const handleKey = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+  };
+
+  return (
+    <div className="flex flex-col" style={{ height: "calc(100vh - 280px)", minHeight: 480, maxHeight: 700 }}>
+
+      {/* Header banner */}
+      <div className="rounded-2xl p-4 mb-4 flex items-center gap-4"
+        style={{ background: "rgba(200,135,58,0.07)", border: "1px solid rgba(200,135,58,0.18)" }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: grad }}>
+          <Sparkles size={18} className="text-[#0A1A13]" />
+        </div>
+        <div>
+          <p className="font-bold text-white text-sm">AI Support Assistant</p>
+          <p className="text-xs mt-0.5" style={{ color: DIMMED }}>
+            Powered by Claude · Knows your account context · Replies instantly
+          </p>
+        </div>
+        <div className="ml-auto flex items-center gap-1.5 text-xs font-semibold shrink-0" style={{ color: "#34D399" }}>
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          Online
+        </div>
+      </div>
+
+      {/* Quick replies */}
+      <div className="flex gap-2 flex-wrap mb-3">
+        {FAQ_QUICK_REPLIES.map(q => (
+          <button key={q} onClick={() => send(q)}
+            disabled={loading}
+            className="text-xs px-3 py-1.5 rounded-xl border transition-all duration-200 disabled:opacity-40"
+            style={{ background: SURFACE, border: `1px solid ${BORDER}`, color: MUTED }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(200,135,58,0.35)"; e.currentTarget.style.color = AMBER; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.color = MUTED; }}>
+            {q}
+          </button>
+        ))}
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto rounded-2xl p-5 space-y-4"
+        style={{ background: "rgba(5,15,10,0.7)", border: `1px solid ${BORDER}` }}>
+
+        {messages.map((m, i) => {
+          const isUser = m.role === "user";
+          return (
+            <div key={i} className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
+              {/* Avatar */}
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black"
+                style={isUser
+                  ? { background: grad, color: "#0A1A13" }
+                  : { background: "rgba(200,135,58,0.12)", border: "1px solid rgba(200,135,58,0.2)", color: AMBER }
+                }
+              >
+                {isUser ? (user?.name?.[0]?.toUpperCase() || "U") : <Bot size={13} />}
+              </div>
+
+              {/* Bubble */}
+              <div className={`max-w-[76%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
+                <div
+                  className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                    isUser ? "rounded-2xl rounded-tr-sm" : "rounded-2xl rounded-tl-sm"
+                  }`}
+                  style={isUser
+                    ? { background: grad, color: "#0A1A13" }
+                    : m.isError
+                      ? { background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#FCA5A5" }
+                      : { background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}`, color: "rgba(255,255,255,0.8)" }
+                  }
+                >
+                  {m.content}
+                </div>
+                {!isUser && (
+                  <p className="text-[10px] px-1" style={{ color: "rgba(255,255,255,0.18)" }}>
+                    AI Assistant
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Typing indicator */}
+        {loading && (
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "rgba(200,135,58,0.12)", border: "1px solid rgba(200,135,58,0.2)", color: AMBER }}>
+              <Bot size={13} />
+            </div>
+            <div className="px-4 py-3.5 rounded-2xl rounded-tl-sm flex gap-1.5 items-center"
+              style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}` }}>
+              {[0,1,2].map(i => (
+                <span key={i} className="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s` }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input row */}
+      <div className="mt-3">
+        <div className="flex gap-2.5 items-end">
+          <textarea
+            ref={textareaRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder="Ask anything about your account, investments, or payments… (Enter to send)"
+            rows={1}
+            className="flex-1 resize-none rounded-2xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-none transition-all duration-200"
+            style={{
+              background: SURFACE,
+              border: `1px solid ${BORDER}`,
+              maxHeight: 100,
+              lineHeight: 1.5,
+            }}
+            onFocus={e => e.currentTarget.style.borderColor = "rgba(200,135,58,0.6)"}
+            onBlur={e => e.currentTarget.style.borderColor = BORDER}
+          />
+          <button
+            onClick={() => send()}
+            disabled={!input.trim() || loading}
+            className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95 disabled:opacity-35 disabled:cursor-not-allowed"
+            style={{ background: grad, color: "#0A1A13" }}
+          >
+            <Send size={16} />
+          </button>
+        </div>
+        <p className="text-[10px] mt-2 text-center" style={{ color: "rgba(255,255,255,0.15)" }}>
+          AI may make mistakes · For urgent issues, submit a ticket
+        </p>
       </div>
     </div>
   );

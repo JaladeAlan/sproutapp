@@ -14,7 +14,6 @@ function clearCookie(name) {
   document.cookie = `${name}=; path=/; max-age=0`;
 }
 
-// On these routes, an expired/missing token should NOT trigger a redirect
 const GUEST_ROUTES = [
   "/",
   "/login",
@@ -22,6 +21,7 @@ const GUEST_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
+  "/support",
 ];
 
 export const AuthProvider = ({ children }) => {
@@ -42,13 +42,13 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
-    setCookie("auth_token", token);
     api.defaults.headers.common.Authorization = `Bearer ${token}`;
 
     try {
       const res      = await api.get("/me");
       const userData = res.data.user ?? res.data;
       setUser(userData);
+      setCookie("auth_token", token);
       setCookie("user_role", userData?.role || "user");
     } catch (err) {
       console.error("Auth check failed:", err);

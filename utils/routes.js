@@ -8,4 +8,5 @@ export const GUEST_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
+  "/support",
 ];
