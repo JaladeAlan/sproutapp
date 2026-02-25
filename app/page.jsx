@@ -1,17 +1,19 @@
 import Link from "next/link";
 import FaqSection from "./components/FaqSection";
-import LandImage from "./components/LandImage";
 import FeaturedProperties from "./components/FeaturedProperties";
 import {
-  MapPin, Home, ArrowRight, LogIn, ChevronRight,
+  MapPin, Home, ArrowRight,
   CheckCircle, Shield, Zap, FileCheck, Users, TrendingUp,
   Clock, Award, Star,
 } from "lucide-react";
 
+const appname = process.env.NEXT_PUBLIC_APP_NAME || "Sproutvest";
+const appurl  = process.env.NEXT_PUBLIC_APP_URL  || "https://yourdomain.com";
+
 // ─── SEO Metadata ─────────────────────────────────────────────────────────────
 export const metadata = {
-  metadataBase: new URL("https://yourdomain.com"),
-  title: "Sproutvest — Invest in Verified Land Across Nigeria",
+  metadataBase: new URL(appurl),
+  title: `${appname} — Invest in Verified Land Across Nigeria`,
   description:
     "Join 10,000+ investors securing their financial future through verified land investments across Nigeria. Start with as low as ₦5,000. Safe, transparent, and legally verified.",
   keywords: [
@@ -19,20 +21,20 @@ export const metadata = {
     "buy land Lagos",
     "real estate investment Nigeria",
     "verified land",
-    "Sproutvest",
+    appname,
   ],
   openGraph: {
-    title: "Sproutvest — Invest in Verified Land Across Nigeria",
+    title: `${appname} — Invest in Verified Land Across Nigeria`,
     description:
       "Secure your financial future with verified land investments. Start with as low as ₦5,000.",
-    url: "https://yourdomain.com",
-    siteName: "Sproutvest",
+    url: appurl,
+    siteName: appname,
     images: [
       {
-        url: "https://yourdomain.com/og-image.jpg",
+        url: `${appurl}/og-image.jpg`,
         width: 1200,
         height: 630,
-        alt: "Sproutvest Land Investment Platform",
+        alt: `${appname} Land Investment Platform`,
       },
     ],
     type: "website",
@@ -40,12 +42,12 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Sproutvest — Invest in Verified Land Across Nigeria",
+    title: `${appname} — Invest in Verified Land Across Nigeria`,
     description: "Secure your financial future with verified land investments.",
-    images: ["https://yourdomain.com/og-image.jpg"],
+    images: [`${appurl}/og-image.jpg`],
   },
   alternates: {
-    canonical: "https://yourdomain.com",
+    canonical: appurl,
   },
   robots: {
     index: true,
@@ -59,25 +61,25 @@ function JsonLd() {
   const schema = {
     "@context": "https://schema.org",
     "@type": "Organization",
-    name: "Sproutvest",
-    url: "https://yourdomain.com",
-    logo: "https://yourdomain.com/logo.png",
+    name: appname,
+    url: appurl,
+    logo: `${appurl}/logo.png`,
     description:
       "Nigeria's trusted platform for verified land investments. Start investing from ₦5,000.",
     address: {
       "@type": "PostalAddress",
-      streetAddress: "123 Investment Street",
-      addressLocality: "Lagos",
+      streetAddress: "Ibadan",
+      addressLocality: "Oyo State",
       addressCountry: "NG",
     },
     contactPoint: {
       "@type": "ContactPoint",
-      email: "hello@sproutvest.com",
+      email: `hello@${appname.toLowerCase()}.com`,
       contactType: "customer service",
     },
     sameAs: [
-      "https://twitter.com/sproutvest",
-      "https://instagram.com/sproutvest",
+      `https://twitter.com/${appname.toLowerCase()}`,
+      `https://instagram.com/${appname.toLowerCase()}`,
     ],
   };
   return (
@@ -185,10 +187,10 @@ export default async function Homepage() {
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { step: "01", title: "Browse Lands", desc: "Explore verified properties with complete documentation and transparent pricing.", icon: <Home size={28} />, accent: "#C8873A" },
-                { step: "02", title: "Select & Invest", desc: "Choose your preferred land and purchase units that fit your budget.", icon: <CheckCircle size={28} />, accent: "#2D7A55" },
-                { step: "03", title: "Secure Payment", desc: "Pay safely using multiple payment methods with bank-grade encryption.", icon: <Shield size={28} />, accent: "#8B5CF6" },
-                { step: "04", title: "Track & Grow", desc: "Monitor your portfolio and watch your investment appreciate over time.", icon: <TrendingUp size={28} />, accent: "#C8873A" },
+                { step: "01", title: "Browse Lands",   desc: "Explore verified properties with complete documentation and transparent pricing.", icon: <Home size={28} />,       accent: "#C8873A" },
+                { step: "02", title: "Select & Invest", desc: "Choose your preferred land and purchase units that fit your budget.",            icon: <CheckCircle size={28} />, accent: "#2D7A55" },
+                { step: "03", title: "Secure Payment",  desc: "Pay safely using multiple payment methods with bank-grade encryption.",          icon: <Shield size={28} />,      accent: "#8B5CF6" },
+                { step: "04", title: "Track & Grow",    desc: "Monitor your portfolio and watch your investment appreciate over time.",         icon: <TrendingUp size={28} />,  accent: "#C8873A" },
               ].map((s) => (
                 <div key={s.step}
                   className="relative bg-white rounded-2xl p-6 border border-stone-100 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
@@ -220,7 +222,6 @@ export default async function Homepage() {
               </h2>
               <p className="text-white/50">Prime investment opportunities across Nigeria</p>
             </div>
-
             <FeaturedProperties lands={lands} />
           </div>
         </section>
@@ -232,17 +233,17 @@ export default async function Homepage() {
               <span className="text-xs font-bold tracking-[0.2em] uppercase text-amber-700 mb-3 block">Our Edge</span>
               <h2 id="why-us-heading" className="text-4xl sm:text-5xl font-bold text-[#0D1F1A] mb-4"
                 style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-                Why Choose Sproutvest
+                Why Choose {appname}
               </h2>
               <p className="text-[#5C6B63] max-w-xl mx-auto">Everything you need for a secure and profitable land investment</p>
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
-                { icon: <Shield size={28} />, title: "Verified Lands", desc: "All properties are legally verified with complete documentation.", accent: "#C8873A" },
-                { icon: <Zap size={28} />, title: "Flexible Payments", desc: "Multiple payment methods. Pay in full or choose installment plans.", accent: "#2D7A55" },
-                { icon: <FileCheck size={28} />, title: "Fast Processing", desc: "Quick documentation and seamless title transfer process.", accent: "#8B5CF6" },
-                { icon: <Users size={28} />, title: "Expert Support", desc: "Dedicated team to guide you through every step.", accent: "#C8873A" },
+                { icon: <Shield size={28} />,   title: "Verified Lands",    desc: "All properties are legally verified with complete documentation.",   accent: "#C8873A" },
+                { icon: <Zap size={28} />,      title: "Flexible Payments", desc: "Multiple payment methods. Pay in full or choose installment plans.", accent: "#2D7A55" },
+                { icon: <FileCheck size={28} />, title: "Fast Processing",   desc: "Quick documentation and seamless title transfer process.",           accent: "#8B5CF6" },
+                { icon: <Users size={28} />,    title: "Expert Support",    desc: "Dedicated team to guide you through every step.",                    accent: "#C8873A" },
               ].map((f) => (
                 <div key={f.title}
                   className="bg-white rounded-2xl p-7 border border-stone-100 shadow-sm text-center group hover:shadow-md hover:-translate-y-1 transition-all">
@@ -272,8 +273,8 @@ export default async function Homepage() {
 
             <div className="grid md:grid-cols-3 gap-6">
               {[
-                { name: "Chidi Okonkwo", role: "Business Owner, Abuja", text: "I've invested in 3 properties so far and the process was incredibly smooth. The team is transparent and professional.", rating: 5 },
-                { name: "Amina Bello", role: "Software Engineer, Lagos", text: "The flexible payment plan made it easy for me to start investing. My land value has already appreciated by 15%!", rating: 5 },
+                { name: "Chidi Okonkwo",  role: "Business Owner, Abuja",          text: "I've invested in 3 properties so far and the process was incredibly smooth. The team is transparent and professional.", rating: 5 },
+                { name: "Amina Bello",    role: "Software Engineer, Lagos",        text: "The flexible payment plan made it easy for me to start investing. My land value has already appreciated by 15%!", rating: 5 },
                 { name: "Tunde Adeyemi", role: "Real Estate Investor, Port Harcourt", text: "Best platform for verified land investments in Nigeria. The documentation process was fast and hassle-free.", rating: 5 },
               ].map((t, i) => (
                 <blockquote key={i}
@@ -351,8 +352,6 @@ export default async function Homepage() {
     </>
   );
 }
-
-// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatBox({ number, label }) {
   return (

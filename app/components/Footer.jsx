@@ -4,6 +4,8 @@ import Link from "next/link";
 import { MapPin, Mail, Phone } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
+const appname = process.env.NEXT_PUBLIC_APP_NAME || "Sproutvest";
+
 const footerLinks = [
   {
     heading: "Platform",
@@ -64,7 +66,7 @@ export default function Footer() {
                 className="text-xl font-bold text-white"
                 style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
               >
-                Sproutvest
+                {appname}
               </span>
             </Link>
 
@@ -74,9 +76,9 @@ export default function Footer() {
 
             <div className="space-y-2.5">
               {[
-                { icon: <MapPin size={13} />, text: "Ibadan, Oyo State, Nigeria" },
-                { icon: <Mail size={13} />,   text: "hello@sproutvest.com"       },
-                { icon: <Phone size={13} />,  text: "+234 800 000 0000"          },
+                { icon: <MapPin size={13} />, text: "Ibadan, Oyo State, Nigeria"              },
+                { icon: <Mail size={13} />,   text: `hello@${appname.toLowerCase()}.com`      },
+                { icon: <Phone size={13} />,  text: "+234 800 000 0000"                        },
               ].map((item) => (
                 <div key={item.text} className="flex items-center gap-2.5 text-white/30 text-xs">
                   <span className="text-amber-600/70">{item.icon}</span>
@@ -86,7 +88,7 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Link columns — authOnly links hidden when no user, same as Header nav */}
+          {/* Link columns */}
           {footerLinks.map((col) => {
             const visibleLinks = col.links.filter((l) => !l.authOnly || user);
             return (
@@ -114,7 +116,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-8 border-t border-white/8">
           <p className="text-xs text-white/20">
-            © {new Date().getFullYear()} Sproutvest. All rights reserved.
+            © {new Date().getFullYear()} {appname}. All rights reserved.
           </p>
           <div className="flex items-center gap-2">
             <span className="text-xs text-white/20">crafted by</span>
@@ -132,13 +134,6 @@ export default function Footer() {
             >
               La Jade
             </span>
-            <style>{`
-              @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap');
-              @keyframes shimmer {
-                0%   { background-position: 0% center; }
-                100% { background-position: 200% center; }
-              }
-            `}</style>
           </div>
         </div>
       </div>

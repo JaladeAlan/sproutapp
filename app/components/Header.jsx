@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Menu, X, LogOut, ChevronRight } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import toast from "react-hot-toast";
+
+const appname = process.env.NEXT_PUBLIC_APP_NAME || "Sproutvest";
 
 const links = [
   { name: "Home",      path: "/dashboard" },
@@ -18,7 +20,6 @@ const links = [
 
 export default function Header() {
   const pathname = usePathname();
-  const router   = useRouter();
   const { user, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -33,7 +34,6 @@ export default function Header() {
     setMenuOpen(false);
     logout();
     toast.success("Logged out successfully. See you soon!");
-    router.push("/login");
   };
 
   return (
@@ -52,7 +52,7 @@ export default function Header() {
         <div className="max-w-7xl mx-auto flex items-center justify-between px-5 sm:px-8 py-3.5">
 
           {/* Logo */}
-          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group" aria-label="Sproutvest Home">
+          <Link href={user ? "/dashboard" : "/"} className="flex items-center gap-2.5 group" aria-label={`${appname} Home`}>
             <div
               className="w-8 h-8 rounded-lg flex items-center justify-center text-[#0D1F1A] font-black text-sm transition-transform group-hover:scale-105"
               style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}
@@ -60,7 +60,7 @@ export default function Header() {
               S
             </div>
             <span className="text-xl font-bold text-white tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              Sproutvest
+              {appname}
             </span>
           </Link>
 
