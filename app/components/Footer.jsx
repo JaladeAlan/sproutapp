@@ -8,18 +8,8 @@ const appname = process.env.NEXT_PUBLIC_APP_NAME || "Sproutvest";
 
 const footerLinks = [
   {
-    heading: "Platform",
-    links: [
-      { label: "Browse Lands", href: "/lands"                    },
-      { label: "Portfolio",    href: "/portfolio", authOnly: true },
-      { label: "Wallet",       href: "/wallet",    authOnly: true },
-      { label: "Referrals",    href: "/referrals", authOnly: true },
-    ],
-  },
-  {
     heading: "Account",
     links: [
-      { label: "Dashboard", href: "/dashboard", authOnly: true },
       { label: "Settings",  href: "/settings",  authOnly: true },
       { label: "Support",   href: "/support"                   },
     ],

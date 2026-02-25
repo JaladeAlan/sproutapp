@@ -945,12 +945,12 @@ function GuestContactForm() {
    AI CHAT VIEW
 ══════════════════════════════════════════════════════════════════════════════ */
 const FAQ_QUICK_REPLIES = [
-  "How do I fund my wallet?",
-  "How do I complete KYC?",
-  "How long do withdrawals take?",
-  "How do I reset my PIN?",
-  "How do I buy land units?",
-  "How do I sell my units?",
+  "Fund my wallet",
+  "Complete KYC",
+  "Withdrawal time",
+  "Reset PIN",
+  "Buy land units",
+  "Sell my units",
 ];
 
 function AiChatView() {
@@ -958,13 +958,15 @@ function AiChatView() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: `Hi ${user?.name?.split(" ")[0] || "there"}! I'm your Sproutvest assistant. Ask me anything about your account, investments, deposits, KYC, or anything else — I'm here to help.`,
+      content: `Hi ${user?.name?.split(" ")[0] || "there"}! I'm your Sproutvest assistant. Ask me anything about your account, investments, deposits, KYC, or anything else.`,
     },
   ]);
-  const [input, setInput]     = useState("");
-  const [loading, setLoading] = useState(false);
-  const bottomRef             = useRef(null);
-  const textareaRef           = useRef(null);
+  const [input, setInput]         = useState("");
+  const [loading, setLoading]     = useState(false);
+  const [chipsVisible, setChipsVisible] = useState(true);
+  const bottomRef                 = useRef(null);
+  const textareaRef               = useRef(null);
+  const messagesRef               = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -974,6 +976,7 @@ function AiChatView() {
     const content = (text || input).trim();
     if (!content || loading) return;
     setInput("");
+    setChipsVisible(false); // hide chips once conversation starts
 
     const next = [...messages, { role: "user", content }];
     setMessages(next);
@@ -1000,81 +1003,100 @@ function AiChatView() {
   };
 
   return (
-    <div className="flex flex-col" style={{ height: "calc(100vh - 280px)", minHeight: 480, maxHeight: 700 }}>
+    <div className="flex flex-col" style={{ height: "calc(100dvh - 220px)", minHeight: 420 }}>
 
-      <div className="rounded-2xl p-4 mb-4 flex items-center gap-4"
+      {/* ── Compact header ── */}
+      <div className="flex items-center gap-3 rounded-2xl px-4 py-3 mb-3 shrink-0"
         style={{ background: "rgba(200,135,58,0.07)", border: "1px solid rgba(200,135,58,0.18)" }}>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: grad }}>
-          <Sparkles size={18} className="text-[#0A1A13]" />
+        <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: grad }}>
+          <Sparkles size={14} className="text-[#0A1A13]" />
         </div>
-        <div>
-          <p className="font-bold text-white text-sm">AI Support Assistant</p>
-          <p className="text-xs mt-0.5" style={{ color: DIMMED }}>
-            Powered by Claude · Knows your account context · Replies instantly
+        <div className="flex-1 min-w-0">
+          <p className="font-bold text-white text-sm leading-none">AI Support Assistant</p>
+          <p className="text-[11px] mt-0.5 truncate" style={{ color: DIMMED }}>
+            Powered by Claude · Replies instantly
           </p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5 text-xs font-semibold shrink-0" style={{ color: "#34D399" }}>
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Online
+        <div className="flex items-center gap-1.5 text-xs font-semibold shrink-0" style={{ color: "#34D399" }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="hidden sm:inline">Online</span>
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap mb-3">
-        {FAQ_QUICK_REPLIES.map(q => (
-          <button key={q} onClick={() => send(q)} disabled={loading}
-            className="text-xs px-3 py-1.5 rounded-xl border transition-all duration-200 disabled:opacity-40"
-            style={{ background: SURFACE, border: `1px solid ${BORDER}`, color: MUTED }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(200,135,58,0.35)"; e.currentTarget.style.color = AMBER; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.color = MUTED; }}>
-            {q}
-          </button>
-        ))}
-      </div>
+      {/* ── Quick reply chips — single horizontal scroll row ── */}
+      {chipsVisible && (
+        <div className="flex gap-2 mb-3 overflow-x-auto shrink-0 pb-1"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          {FAQ_QUICK_REPLIES.map(q => (
+            <button key={q} onClick={() => send(q)} disabled={loading}
+              className="text-xs px-3 py-1.5 rounded-full border whitespace-nowrap shrink-0 transition-all duration-200 disabled:opacity-40"
+              style={{ background: SURFACE, border: `1px solid ${BORDER}`, color: MUTED }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "rgba(200,135,58,0.4)"; e.currentTarget.style.color = AMBER; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = BORDER; e.currentTarget.style.color = MUTED; }}>
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
 
-      <div className="flex-1 overflow-y-auto rounded-2xl p-5 space-y-4"
+      {/* ── Messages ── */}
+      <div ref={messagesRef}
+        className="flex-1 overflow-y-auto rounded-2xl px-3 py-4 sm:px-5 sm:py-5 space-y-4"
         style={{ background: "rgba(5,15,10,0.7)", border: `1px solid ${BORDER}` }}>
         {messages.map((m, i) => {
           const isUser = m.role === "user";
           return (
-            <div key={i} className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
+            <div key={i} className={`flex gap-2.5 ${isUser ? "flex-row-reverse" : ""}`}>
+              {/* Avatar — hidden on mobile for assistant to save space */}
               <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-black"
+                className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-black self-end ${isUser ? "" : "hidden sm:flex"}`}
                 style={isUser
                   ? { background: grad, color: "#0A1A13" }
                   : { background: "rgba(200,135,58,0.12)", border: "1px solid rgba(200,135,58,0.2)", color: AMBER }
                 }
               >
-                {isUser ? (user?.name?.[0]?.toUpperCase() || "U") : <Bot size={13} />}
+                {isUser ? (user?.name?.[0]?.toUpperCase() || "U") : <Bot size={12} />}
               </div>
-              <div className={`max-w-[76%] flex flex-col gap-1.5 ${isUser ? "items-end" : "items-start"}`}>
+
+              {/* Bubble */}
+              <div className={`flex flex-col gap-1 ${isUser ? "items-end max-w-[82%]" : "items-start max-w-[92%] sm:max-w-[80%]"}`}>
+                {/* AI label on mobile (replaces hidden avatar) */}
+                {!isUser && (
+                  <p className="text-[10px] px-1 sm:hidden" style={{ color: AMBER }}>
+                    AI Assistant
+                  </p>
+                )}
                 <div
-                  className={`px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                  className={`px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                     isUser ? "rounded-2xl rounded-tr-sm" : "rounded-2xl rounded-tl-sm"
                   }`}
                   style={isUser
                     ? { background: grad, color: "#0A1A13" }
                     : m.isError
                       ? { background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#FCA5A5" }
-                      : { background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}`, color: "rgba(255,255,255,0.8)" }
+                      : { background: "rgba(255,255,255,0.07)", border: `1px solid ${BORDER}`, color: "rgba(255,255,255,0.85)" }
                   }
                 >
                   {m.content}
                 </div>
                 {!isUser && (
-                  <p className="text-[10px] px-1" style={{ color: "rgba(255,255,255,0.18)" }}>AI Assistant</p>
+                  <p className="text-[10px] px-1 hidden sm:block" style={{ color: "rgba(255,255,255,0.18)" }}>
+                    AI Assistant
+                  </p>
                 )}
               </div>
             </div>
           );
         })}
 
+        {/* Typing indicator */}
         {loading && (
-          <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+          <div className="flex gap-2.5">
+            <div className="w-7 h-7 rounded-lg hidden sm:flex items-center justify-center shrink-0"
               style={{ background: "rgba(200,135,58,0.12)", border: "1px solid rgba(200,135,58,0.2)", color: AMBER }}>
-              <Bot size={13} />
+              <Bot size={12} />
             </div>
-            <div className="px-4 py-3.5 rounded-2xl rounded-tl-sm flex gap-1.5 items-center"
+            <div className="px-4 py-3 rounded-2xl rounded-tl-sm flex gap-1.5 items-center"
               style={{ background: "rgba(255,255,255,0.06)", border: `1px solid ${BORDER}` }}>
               {[0,1,2].map(i => (
                 <span key={i} className="w-1.5 h-1.5 rounded-full bg-amber-500/60 animate-bounce"
@@ -1086,28 +1108,29 @@ function AiChatView() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="mt-3">
-        <div className="flex gap-2.5 items-end">
+      {/* ── Input ── */}
+      <div className="mt-2.5 shrink-0">
+        <div className="flex gap-2 items-end">
           <textarea
             ref={textareaRef}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="Ask anything about your account, investments, or payments… (Enter to send)"
+            placeholder="Ask me anything… (Enter to send)"
             rows={1}
-            className="flex-1 resize-none rounded-2xl px-4 py-3.5 text-sm text-white placeholder-white/20 focus:outline-none transition-all duration-200"
-            style={{ background: SURFACE, border: `1px solid ${BORDER}`, maxHeight: 100, lineHeight: 1.5 }}
+            className="flex-1 resize-none rounded-2xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none transition-all duration-200"
+            style={{ background: SURFACE, border: `1px solid ${BORDER}`, maxHeight: 80, lineHeight: 1.5 }}
             onFocus={e => e.currentTarget.style.borderColor = "rgba(200,135,58,0.6)"}
             onBlur={e => e.currentTarget.style.borderColor = BORDER}
           />
           <button onClick={() => send()} disabled={!input.trim() || loading}
-            className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95 disabled:opacity-35 disabled:cursor-not-allowed"
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95 disabled:opacity-35 disabled:cursor-not-allowed"
             style={{ background: grad, color: "#0A1A13" }}>
-            <Send size={16} />
+            {loading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
           </button>
         </div>
-        <p className="text-[10px] mt-2 text-center" style={{ color: "rgba(255,255,255,0.15)" }}>
-          AI may make mistakes · For urgent issues, submit a ticket
+        <p className="text-[10px] mt-1.5 text-center" style={{ color: "rgba(255,255,255,0.12)" }}>
+          AI may make mistakes · Submit a ticket for urgent issues
         </p>
       </div>
     </div>
