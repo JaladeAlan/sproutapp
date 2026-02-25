@@ -1,12 +1,14 @@
 "use client";
+
 import { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
-import handleApiError from "../../utils/handleApiError";
 import FormError from "../components/FormError";
-import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react";
+
+const appname = process.env.NEXT_PUBLIC_APP_NAME || "Sproutvest";
 
 export default function Login() {
   return (
@@ -17,15 +19,15 @@ export default function Login() {
 }
 
 function LoginForm() {
-  const [form, setForm] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
+  const [form, setForm]               = useState({ email: "", password: "" });
+  const [error, setError]             = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]         = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const router = useRouter();
+  const router       = useRouter();
   const searchParams = useSearchParams();
-  const { login } = useAuth();
+  const { login }    = useAuth();
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -37,6 +39,8 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setFieldErrors({});
+
     try {
       await login(form.email, form.password);
 
@@ -44,22 +48,36 @@ function LoginForm() {
       const savedRedirect = localStorage.getItem("redirectAfterLogin");
       const destination   = paramRedirect || savedRedirect || "/dashboard";
 
-      // Clean up regardless of which source was used
       localStorage.removeItem("redirectAfterLogin");
 
-      // Only fire welcome toast when landing on the dashboard itself
       if (destination === "/dashboard" || destination.startsWith("/dashboard/")) {
         sessionStorage.setItem("justLoggedIn", "1");
       }
 
       router.push(destination);
     } catch (err) {
-      handleApiError(err, "Login failed. Please try again.", setError);
-      const errorMessage =
-        err.response?.data?.message ||
-        err.response?.data?.error ||
-        "Login failed. Please try again.";
-      toast.error(errorMessage, { duration: 5000, position: "top-center" });
+      // Single error handling — no double toast
+      if (err.response?.status === 422) {
+        const errors = err.response.data?.errors;
+        if (errors) {
+          setFieldErrors(
+            Object.fromEntries(
+              Object.entries(errors).map(([k, v]) => [k, Array.isArray(v) ? v[0] : v])
+            )
+          );
+        } else {
+          const msg = err.response.data?.message || "Validation failed.";
+          setError(msg);
+          toast.error(msg);
+        }
+      } else {
+        const msg =
+          err.response?.data?.message ||
+          err.response?.data?.error ||
+          "Login failed. Please try again.";
+        setError(msg);
+        toast.error(msg, { duration: 5000, position: "top-center" });
+      }
     } finally {
       setLoading(false);
     }
@@ -85,7 +103,8 @@ function LoginForm() {
           <Link href="/">
             <h1 className="text-4xl font-bold text-white inline-block"
               style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-              Sprout<span style={{ color: "#C8873A" }}>vest</span>
+              {appname.slice(0, -4)}
+              <span style={{ color: "#C8873A" }}>{appname.slice(-4)}</span>
             </h1>
           </Link>
           <p className="text-white/40 mt-2 text-sm">Welcome back — your portfolio awaits</p>
@@ -99,9 +118,10 @@ function LoginForm() {
           </h2>
           <p className="text-white/40 text-sm mb-8">Enter your credentials to continue</p>
 
+          {/* Inline error banner */}
           {error && (
             <div className="mb-6 p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm flex items-start gap-2.5">
-              <span className="mt-0.5">⚠️</span>
+              <AlertCircle size={15} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
@@ -124,7 +144,7 @@ function LoginForm() {
                   }`}
                 />
               </div>
-              <FormError message={fieldErrors.email} />
+              <FormError error={fieldErrors.email} />
             </div>
 
             {/* Password */}
@@ -154,7 +174,7 @@ function LoginForm() {
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-              <FormError message={fieldErrors.password} />
+              <FormError error={fieldErrors.password} />
             </div>
 
             {/* Submit */}

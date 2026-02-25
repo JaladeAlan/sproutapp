@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Gift, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, Gift, CheckCircle, AlertCircle } from "lucide-react";
 import api from "../../utils/api";
+
+const appname = process.env.NEXT_PUBLIC_APP_NAME || "Sproutvest";
 
 export default function Register() {
   return (
@@ -24,12 +26,13 @@ function RegisterForm() {
     password_confirmation: "",
     referral_code: "",
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [focused, setFocused] = useState(false);
+  const [focused, setFocused]         = useState(false);
   const [showReferral, setShowReferral] = useState(false);
 
-  const router = useRouter();
+  const router       = useRouter();
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -40,31 +43,35 @@ function RegisterForm() {
     }
   }, [searchParams]);
 
-  const handleChange = (e) =>
+  const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    if (error) setError("");
+  };
 
   const passwordChecks = [
-    { test: /.{8,}/, label: "At least 8 characters" },
-    { test: /[A-Z]/, label: "One uppercase letter" },
-    { test: /[a-z]/, label: "One lowercase letter" },
-    { test: /\d/, label: "One number" },
-    { test: /[@$!%*?&#]/, label: "One special character" },
+    { test: /.{8,}/,      label: "At least 8 characters"  },
+    { test: /[A-Z]/,      label: "One uppercase letter"   },
+    { test: /[a-z]/,      label: "One lowercase letter"   },
+    { test: /\d/,         label: "One number"             },
+    { test: /[@$!%*?&#]/, label: "One special character"  },
   ];
 
-  const passedChecks = passwordChecks.filter((c) => c.test.test(form.password)).length;
+  const passedChecks    = passwordChecks.filter((c) => c.test.test(form.password)).length;
+  const strengthColors  = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#16a34a"];
+  const strengthText    = ["Too weak", "Weak", "Fair", "Good", "Strong"];
 
-  const strengthColors = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#16a34a"];
-  const strengthText = ["Too weak", "Weak", "Fair", "Good", "Strong"];
-
-  const passwordsMatch = form.password && form.password_confirmation && form.password === form.password_confirmation;
+  const passwordsMatch     = form.password && form.password_confirmation && form.password === form.password_confirmation;
   const passwordsDontMatch = form.password_confirmation && !passwordsMatch;
-  const isFormValid = passedChecks === passwordChecks.length && passwordsMatch;
+  const isFormValid        = passedChecks === passwordChecks.length && passwordsMatch;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
+
     const payload = { ...form };
     if (!payload.referral_code?.trim()) delete payload.referral_code;
+
     try {
       await api.post("/register", payload);
       toast.success("Account created! Please verify your email.");
@@ -74,12 +81,15 @@ function RegisterForm() {
       if (err.response?.status === 422) {
         const errors = err.response.data?.errors;
         if (errors) {
-          Object.values(errors).forEach((msgs) => msgs.forEach((msg) => toast.error(msg)));
+          // Collect all validation messages into the inline banner
+          const messages = Object.values(errors).flat();
+          setError(messages.join(" · "));
         } else {
-          toast.error("Validation failed. Please check your input.");
+          setError("Validation failed. Please check your input.");
         }
       } else {
-        toast.error(err.response?.data?.message || err.response?.data?.error || "Registration failed.");
+        const msg = err.response?.data?.message || err.response?.data?.error || "Registration failed.";
+        setError(msg);
       }
     } finally {
       setLoading(false);
@@ -97,28 +107,24 @@ function RegisterForm() {
       <div className="absolute bottom-[-15%] left-[-10%] w-[45vw] h-[45vw] rounded-full opacity-15 pointer-events-none"
         style={{ background: "radial-gradient(circle, #2D7A55 0%, transparent 70%)" }} />
       <div className="absolute inset-0 opacity-[0.04] pointer-events-none"
-        style={{
-          backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }} />
+        style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
 
       <div className="relative z-10 w-full max-w-md">
 
         {/* Logo */}
         <div className="text-center mb-8">
           <Link href="/">
-            <h1
-              className="text-4xl font-bold text-white inline-block"
-              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-            >
-              Sprout<span style={{ color: "#C8873A" }}>vest</span>
+            <h1 className="text-4xl font-bold text-white inline-block"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              {appname.slice(0, -4)}
+              <span style={{ color: "#C8873A" }}>{appname.slice(-4)}</span>
             </h1>
           </Link>
           <p className="text-white/40 mt-2 text-sm">Start building your land portfolio today</p>
         </div>
 
         {/* Trust badges */}
-        <div className="flex justify-center gap-4 mb-8">
+        <div className="flex justify-center gap-4 mb-8 flex-wrap">
           {["Verified Platform", "Secure Payments", "10K+ Investors"].map((badge) => (
             <div key={badge} className="flex items-center gap-1.5 text-xs text-white/30">
               <CheckCircle size={11} className="text-emerald-500" />
@@ -130,13 +136,19 @@ function RegisterForm() {
         {/* Card */}
         <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 shadow-2xl">
 
-          <h2
-            className="text-2xl font-bold text-white mb-1"
-            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-          >
+          <h2 className="text-2xl font-bold text-white mb-1"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             Create Account
           </h2>
           <p className="text-white/40 text-sm mb-8">Join thousands of smart Nigerian investors</p>
+
+          {/* Inline error banner */}
+          {error && (
+            <div className="mb-6 p-3.5 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm flex items-start gap-2.5">
+              <AlertCircle size={15} className="mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
 
@@ -193,6 +205,7 @@ function RegisterForm() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -203,13 +216,8 @@ function RegisterForm() {
                 <div className="mt-2.5">
                   <div className="flex gap-1 mb-1.5">
                     {passwordChecks.map((_, i) => (
-                      <div
-                        key={i}
-                        className="flex-1 h-1 rounded-full transition-all duration-300"
-                        style={{
-                          background: i < passedChecks ? strengthColors[passedChecks - 1] : "rgba(255,255,255,0.1)"
-                        }}
-                      />
+                      <div key={i} className="flex-1 h-1 rounded-full transition-all duration-300"
+                        style={{ background: i < passedChecks ? strengthColors[passedChecks - 1] : "rgba(255,255,255,0.1)" }} />
                     ))}
                   </div>
                   <p className="text-xs" style={{ color: passedChecks > 0 ? strengthColors[passedChecks - 1] : "rgba(255,255,255,0.3)" }}>
@@ -323,15 +331,11 @@ function RegisterForm() {
                   <span>Creating Account...</span>
                 </>
               ) : (
-                <>
-                  <span>Create Account</span>
-                  <ArrowRight size={16} />
-                </>
+                <><span>Create Account</span><ArrowRight size={16} /></>
               )}
             </button>
           </form>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 my-7">
             <div className="flex-1 h-px bg-white/10" />
             <span className="text-white/20 text-xs">OR</span>
