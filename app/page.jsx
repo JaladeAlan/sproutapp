@@ -53,11 +53,11 @@ function JsonLd() {
 // ─── ISR fetch ────────────────────────────────────────────────────────────────
 async function getLands() {
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/lands`, { next: { revalidate: 3600 } });
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/land`, { next: { revalidate: 3600 } });
     if (!res.ok) return [];
     const json = await res.json();
     const data = json?.data || json || [];
-    return Array.isArray(data) ? data.slice(0, 3) : [];
+    return Array.isArray(data) ? data.slice(0, 5) : [];
   } catch {
     return [];
   }
