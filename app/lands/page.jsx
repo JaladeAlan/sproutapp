@@ -23,9 +23,8 @@ function getLandPrice(land) {
   );
 }
 
-// API returns `coordinates` (WKB hex), not a boolean `has_polygon`
 function hasPolygon(land) {
-  return !!(land.has_polygon || land.coordinates || land.polygon);
+  return Array.isArray(land.polygon) && land.polygon.length > 0;
 }
 
 function getPriceTag(priceKobo) {

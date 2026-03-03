@@ -47,7 +47,7 @@ function getUnitOpacity(units) {
 
 /* ===================== MARKER ICON ===================== */
 function createMarkerIcon({ priceKobo, units, active }) {
-  const priceNaira = koboToNaira(priceKobo ?? 0); // FIX: guard undefined
+  const priceNaira = koboToNaira(priceKobo ?? 0);
   return L.divIcon({
     className: "",
     iconSize: [36, 36],
@@ -90,11 +90,6 @@ function FitBounds({ points }) {
   return null;
 }
 
-/**
- * FIX: was always passed isFullScreen={false} so never actually fired on
- * fullscreen toggle. Now accepts the real value, and guards against calling
- * invalidateSize() on an unmounted / uninitialised map.
- */
 function MapInvalidate({ isFullScreen }) {
   const map = useMap();
   useEffect(() => {
@@ -147,7 +142,6 @@ function HeatmapLayer({ lands }) {
     if (ref.current) { map.removeLayer(ref.current); ref.current = null; }
     if (!lands.length) return;
 
-    // leaflet.heat patches L as a side effect — guard in case it hasn't loaded yet
     if (typeof L.heatLayer !== "function") {
       console.warn("[LandMap] leaflet.heat not available — heatmap skipped");
       return;
@@ -176,7 +170,7 @@ function HeatmapLayer({ lands }) {
 
 /* ===================== POPUP CONTENT ===================== */
 function LandPopup({ land }) {
-  const priceKobo = getLandPrice(land); // FIX: use helper instead of direct field
+  const priceKobo = getLandPrice(land); 
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif", minWidth: 180 }}>
       <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 14, color: "#0D1F1A", marginBottom: 4 }}>
@@ -216,7 +210,7 @@ export default function LandMap({
   onZoomChange,
   onMoveEnd,
   onMapReady,
-  isFullScreen = false, // FIX: accept real prop — was hardcoded false before
+  isFullScreen = false, 
   className = "h-full w-full",
 }) {
   const showPolygonMarkers = currentZoom < 12;
@@ -232,8 +226,7 @@ export default function LandMap({
       <MapRefSetter onMapReady={onMapReady} />
       <ZoomTracker onZoomChange={onZoomChange} />
       <MoveEndTracker onMoveEnd={onMoveEnd} />
-      <MapInvalidate isFullScreen={isFullScreen} /> {/* FIX: real prop, not hardcoded false */}
-
+      <MapInvalidate isFullScreen={isFullScreen} /> 
       <LayersControl position="topleft">
         <LayersControl.BaseLayer checked name="Street">
           <TileLayer
@@ -263,7 +256,7 @@ export default function LandMap({
                 key={land.id}
                 position={[+land.lat, +land.lng]}
                 icon={createMarkerIcon({
-                  priceKobo: getLandPrice(land), // FIX: use helper
+                  priceKobo: getLandPrice(land), 
                   units: land.available_units,
                   active: land.id === activeLandId || land.id === hoverLandId,
                 })}
@@ -278,7 +271,7 @@ export default function LandMap({
                   key={`marker-${land.id}`}
                   position={[+land.lat, +land.lng]}
                   icon={createMarkerIcon({
-                    priceKobo: getLandPrice(land), // FIX: use helper
+                    priceKobo: getLandPrice(land), 
                     units: land.available_units,
                     active: land.id === activeLandId || land.id === hoverLandId,
                   })}
@@ -291,7 +284,7 @@ export default function LandMap({
           {!showPolygonMarkers &&
             landsWithPolygons.map((land) => {
               const active     = land.id === activeLandId || land.id === hoverLandId;
-              const priceKobo  = getLandPrice(land); // FIX: use helper
+              const priceKobo  = getLandPrice(land); 
               const color      = getPriceColor(koboToNaira(priceKobo));
               return (
                 <Polygon
