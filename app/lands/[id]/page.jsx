@@ -130,7 +130,7 @@ export default function LandDetails() {
         const res = await api.get("/me");
         const u = res.data?.data ?? {};
         setPinIsSet(u.pin_is_set ?? !!u.transaction_pin);
-        setKycStatus(u.kyc_status ?? "none");
+        setKycStatus(u.kyc_status ?? (u.is_kyc_verified ? "approved" : "none"));
       } catch {}
     } finally {
       setStatusLoaded(true);

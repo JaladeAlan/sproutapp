@@ -130,8 +130,8 @@ export default function Settings() {
         api.get("/me")
           .then((res) => {
             const u = res.data?.data ?? {};
-            setKycStatus(u.kyc_status ?? "none");
             setPinIsSet(u.pin_is_set ?? !!u.transaction_pin);
+            setKycStatus(u.kyc_status ?? (u.is_kyc_verified ? "approved" : "none"));
           })
           .catch(() => {
             setKycStatus("none");

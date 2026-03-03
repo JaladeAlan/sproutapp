@@ -20,6 +20,15 @@ import "leaflet.heat";
 /* ===================== MONEY ===================== */
 const koboToNaira = (kobo) => Number(kobo) / 100;
 
+function getLandPrice(land) {
+  return (
+    land.latest_price?.price_per_unit_kobo
+    ?? land.latestPrice?.price_per_unit_kobo
+    ?? land.price_per_unit_kobo
+    ?? 0
+  );
+}
+
 /* ===================== COLOR ===================== */
 function getPriceColor(priceNaira) {
   if (priceNaira < 2000) return "#22c55e";
@@ -34,7 +43,7 @@ function getUnitOpacity(units) {
 
 /* ===================== MARKER ICON ===================== */
 function createMarkerIcon({ priceKobo, units, active }) {
-  const priceNaira = koboToNaira(priceKobo);
+  const priceNaira = koboToNaira(priceKobo ?? 0); 
   return L.divIcon({
     className: "",
     iconSize: [36, 36],
@@ -46,7 +55,7 @@ function createMarkerIcon({ priceKobo, units, active }) {
           style="
             width:20px;height:20px;border-radius:50%;
             background:${getPriceColor(priceNaira)};
-            opacity:${getUnitOpacity(units)};
+            opacity:${getUnitOpacity(units ?? 0)};
             border:2px solid white;
             box-shadow:0 2px 8px rgba(0,0,0,0.4);
           "
@@ -80,7 +89,17 @@ function FitBounds({ points }) {
 function MapInvalidate({ isFullScreen }) {
   const map = useMap();
   useEffect(() => {
-    setTimeout(() => map.invalidateSize(), 300);
+    const t = setTimeout(() => {
+      try {
+        // Guard: map container must exist and have its pane element
+        if (map && map.getContainer()) {
+          map.invalidateSize();
+        }
+      } catch {
+        // Map was unmounted — ignore
+      }
+    }, 300);
+    return () => clearTimeout(t);
   }, [isFullScreen, map]);
   return null;
 }
@@ -122,9 +141,9 @@ function HeatmapLayer({ lands }) {
     const layer = L.heatLayer(pts, {
       radius: 50, blur: 30, maxZoom: 17, max: 1.0, minOpacity: 0.4,
       gradient: {
-        0.0: "rgba(59,130,246,0)", 0.2: "rgba(16,185,129,0.6)",
+        0.0: "rgba(59,130,246,0)",   0.2: "rgba(16,185,129,0.6)",
         0.4: "rgba(251,191,36,0.7)", 0.6: "rgba(245,158,11,0.8)",
-        0.8: "rgba(239,68,68,0.9)", 1.0: "rgba(220,38,38,1)",
+        0.8: "rgba(239,68,68,0.9)",  1.0: "rgba(220,38,38,1)",
       },
     });
     layer.addTo(map);
@@ -136,6 +155,7 @@ function HeatmapLayer({ lands }) {
 
 /* ===================== POPUP CONTENT ===================== */
 function LandPopup({ land }) {
+  const priceKobo = getLandPrice(land);
   return (
     <div style={{ fontFamily: "'DM Sans', sans-serif", minWidth: 180 }}>
       <p style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: 14, color: "#0D1F1A", marginBottom: 4 }}>
@@ -143,10 +163,12 @@ function LandPopup({ land }) {
       </p>
       <p style={{ fontSize: 12, color: "#6b7280", marginBottom: 6 }}>{land.location}</p>
       <p style={{ fontSize: 14, fontWeight: 700, color: "#b45309", marginBottom: 2 }}>
-        ₦{koboToNaira(land.price_per_unit_kobo).toLocaleString()}/unit
+        {priceKobo > 0
+          ? `₦${koboToNaira(priceKobo).toLocaleString()}/unit`
+          : "Price on request"}
       </p>
       <p style={{ fontSize: 11, color: "#9ca3af", marginBottom: 8 }}>
-        {land.available_units?.toLocaleString()} units available
+        {land.available_units?.toLocaleString() ?? "—"} units available
       </p>
       <Link
         href={`/lands/${land.id}`}
@@ -173,6 +195,7 @@ export default function LandMap({
   onZoomChange,
   onMoveEnd,
   onMapReady,
+  isFullScreen = false, // FIX: accept real prop — was hardcoded false before
   className = "h-full w-full",
 }) {
   const showPolygonMarkers = currentZoom < 12;
@@ -188,6 +211,7 @@ export default function LandMap({
       <MapRefSetter onMapReady={onMapReady} />
       <ZoomTracker onZoomChange={onZoomChange} />
       <MoveEndTracker onMoveEnd={onMoveEnd} />
+      <MapInvalidate isFullScreen={isFullScreen} /> {/* FIX: real prop, not hardcoded false */}
 
       <LayersControl position="topleft">
         <LayersControl.BaseLayer checked name="Street">
@@ -218,7 +242,7 @@ export default function LandMap({
                 key={land.id}
                 position={[+land.lat, +land.lng]}
                 icon={createMarkerIcon({
-                  priceKobo: land.price_per_unit_kobo,
+                  priceKobo: getLandPrice(land), 
                   units: land.available_units,
                   active: land.id === activeLandId || land.id === hoverLandId,
                 })}
@@ -233,7 +257,7 @@ export default function LandMap({
                   key={`marker-${land.id}`}
                   position={[+land.lat, +land.lng]}
                   icon={createMarkerIcon({
-                    priceKobo: land.price_per_unit_kobo,
+                    priceKobo: getLandPrice(land), 
                     units: land.available_units,
                     active: land.id === activeLandId || land.id === hoverLandId,
                   })}
@@ -245,8 +269,9 @@ export default function LandMap({
 
           {!showPolygonMarkers &&
             landsWithPolygons.map((land) => {
-              const active = land.id === activeLandId || land.id === hoverLandId;
-              const color = getPriceColor(koboToNaira(land.price_per_unit_kobo));
+              const active     = land.id === activeLandId || land.id === hoverLandId;
+              const priceKobo  = getLandPrice(land); 
+              const color      = getPriceColor(koboToNaira(priceKobo));
               return (
                 <Polygon
                   key={`polygon-${land.id}`}
@@ -268,7 +293,6 @@ export default function LandMap({
 
       <FitBounds points={allMapPoints} />
       <MapFlyController target={flyTarget} />
-      <MapInvalidate isFullScreen={false} />
     </MapContainer>
   );
 }
