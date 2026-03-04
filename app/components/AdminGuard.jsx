@@ -1,21 +1,32 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../context/AuthContext";
+import api from "../../utils/api";
 
 export default function AdminGuard({ children }) {
-  const { user, loading } = useAuth();
   const router = useRouter();
+  // "loading" | "authorized" | "unauthorized"
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
-    if (loading) return;
-    if (!user || !user.is_admin) {
+    api.get("/me")
+      .then((res) => {
+        const user = res.data?.data ?? {};
+        setStatus(user.is_admin === true ? "authorized" : "unauthorized");
+      })
+      .catch(() => {
+        setStatus("unauthorized");
+      });
+  }, []);
+
+  useEffect(() => {
+    if (status === "unauthorized") {
       router.replace("/dashboard");
     }
-  }, [user, loading, router]);
+  }, [status, router]);
 
-  if (loading) {
+  if (status === "loading") {
     return (
       <div className="min-h-screen bg-[#0D1F1A] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
@@ -23,7 +34,7 @@ export default function AdminGuard({ children }) {
     );
   }
 
-  if (!user?.is_admin) return null;
+  if (status !== "authorized") return null;
 
   return children;
 }

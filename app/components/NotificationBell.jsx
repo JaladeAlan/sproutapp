@@ -18,7 +18,7 @@ export default function NotificationBell() {
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
   const router = useRouter();
-notificatiiiii
+
   const loadNotifications = async () => {
     setLoading(true);
 
