@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import api from "../../../utils/api";
 import toast from "react-hot-toast";
 import {
@@ -65,7 +66,7 @@ export default function AdminReferralManagement() {
        <Link href="/admin" className="inline-flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors mb-8">
           ← Back to Dashboard
         </Link>
-        
+
         {/* Header */}
         <div className="mb-10">
           <p className="text-xs font-bold tracking-[0.2em] uppercase text-emerald-500 mb-2">Admin Panel</p>
