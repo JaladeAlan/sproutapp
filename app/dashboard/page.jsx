@@ -78,7 +78,7 @@ function useDashboardData(enabled) {
   const loadData = useCallback(async () => {
     if (!enabled) return;
     try {
-        const [statsRes, txRes, meRes] = await Promise.all([
+      const [statsRes, txRes, meRes] = await Promise.all([
         api.get("/user/stats"),
         api.get("/transactions/user"),
         api.get("/me"),
@@ -379,7 +379,7 @@ function QuickCard({ title, desc, href, icon, accent }) {
 function TransactionsSection({ transactions, loading }) {
   if (loading) {
     return (
-      <div className="rounded-2xl border border-white/[0.07] bg-white/3flow-hidden">
+      <div className="rounded-2xl border border-white/[0.07] bg-white/3 overflow-hidden">
         <div className="px-5 py-4 border-b border-white/5 bg-white/2">
           <div className="h-4 w-44 rounded-lg bg-white/[0.07] animate-pulse" />
         </div>
@@ -401,29 +401,43 @@ function TransactionsSection({ transactions, loading }) {
 
   if (!transactions?.length) {
     return (
-      <div className="rounded-2xl border border-white/[0.07] bg-white/36 text-center">
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-          style={{ background: "rgba(200,135,58,0.07)", boxShadow: "0 0 0 1px rgba(200,135,58,0.13)" }}
-        >
-          <Sparkles size={22} className="text-amber-500/45" />
+      <div className="rounded-2xl border border-white/[0.07] bg-white/3 overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-white/2">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ background: "rgba(200,135,58,0.1)", boxShadow: "0 0 0 1px rgba(200,135,58,0.18)" }}>
+              <Activity size={13} className="text-amber-500" />
+            </div>
+            <h2 className="text-[10px] font-black uppercase tracking-[0.22em] text-white/35">
+              Recent Transactions
+            </h2>
+          </div>
         </div>
-        <h3
-          className="font-bold text-white text-base mb-2"
-          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-        >
-          No transactions yet
-        </h3>
-        <p className="text-sm text-white/27 mb-7 max-w-xs mx-auto leading-relaxed">
-          Start investing in verified land to see your activity here.
-        </p>
-        <Link
-          href="/lands"
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-bold text-sm text-[#0D1F1A] transition-all hover:scale-[1.03] active:scale-[0.98]"
-          style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}
-        >
-          Browse Properties <ArrowUpRight size={14} />
-        </Link>
+
+        <div className="flex flex-col items-center text-center px-5 py-10">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+            style={{ background: "rgba(200,135,58,0.07)", boxShadow: "0 0 0 1px rgba(200,135,58,0.13)" }}
+          >
+            <Sparkles size={16} className="text-amber-500/50" />
+          </div>
+          <p
+            className="font-bold text-white/60 text-sm mb-1"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+          >
+            No transactions yet
+          </p>
+          <p className="text-xs text-white/25 mb-5 max-w-50 leading-relaxed">
+            Invest in verified land to see activity here.
+          </p>
+          <Link
+            href="/lands"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg font-bold text-xs text-[#0D1F1A] transition-all hover:scale-[1.03] active:scale-[0.98]"
+            style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}
+          >
+            Browse Properties <ArrowUpRight size={11} />
+          </Link>
+        </div>
       </div>
     );
   }
