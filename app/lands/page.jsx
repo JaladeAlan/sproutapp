@@ -110,7 +110,6 @@ export default function LandList() {
 
   const mapSectionRef = useRef(null);
 
-  // Fetch lands
   useEffect(() => {
     api.get("/lands")
       .then((res) => {
@@ -122,7 +121,6 @@ export default function LandList() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Fetch account status (PIN + KYC)
   useEffect(() => {
     api.get("/user/account-status")
       .then((res) => {
@@ -131,7 +129,6 @@ export default function LandList() {
         setKycStatus(d.kyc_status ?? "none");
       })
       .catch(() => {
-        // Graceful fallback: try /me
         api.get("/me")
           .then((res) => {
             const u = res.data?.data ?? {};
@@ -152,7 +149,7 @@ export default function LandList() {
       lands.filter((l) => {
         if (l.lat && l.lng && !hasPolygon(l)) return bounds.contains([+l.lat, +l.lng]);
         if (hasPolygon(l) && l.polygon)       return l.polygon.some((p) => bounds.contains([p.lat, p.lng]));
-        if (l.lat && l.lng)                   return bounds.contains([+l.lat, +l.lng]); // WKB-only lands
+        if (l.lat && l.lng)                   return bounds.contains([+l.lat, +l.lng]);
         return false;
       })
     );
@@ -164,6 +161,30 @@ export default function LandList() {
     document.body.style.overflow = isFullScreen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isFullScreen]);
+
+  // Focus a land on the map: scroll → fly → open popup
+  const focusLandOnMap = useCallback((land) => {
+    if (showHeatmap) setShowHeatmap(false);
+    if (isFullScreen) setIsFullScreen(false);
+
+    // Reset first so re-clicking the same land re-triggers the effect
+    setFlyTarget(null);
+    setActiveLandId(null);
+
+    setTimeout(() => {
+      mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      setTimeout(() => {
+        const lat = land.lat ?? land.polygon?.[0]?.lat;
+        const lng = land.lng ?? land.polygon?.[0]?.lng;
+
+        setActiveLandId(land.id);
+        if (lat && lng) setFlyTarget({ lat: +lat, lng: +lng });
+
+        setTimeout(() => setActiveLandId(null), 6000);
+      }, 450);
+    }, 100);
+  }, [showHeatmap, isFullScreen]);
 
   if (loading) {
     return (
@@ -214,7 +235,7 @@ export default function LandList() {
       {/* Fullscreen map overlay */}
       {isFullScreen && (
         <div className="fixed inset-0 z-99999 bg-[#0D1F1A]">
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-100000 flex items-center gap-2 px-3 py-2 rounded-2xl"
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-100000lex items-center gap-2 px-3 py-2 rounded-2xl"
             style={{ background: "rgba(8,20,15,0.92)", border: "1px solid rgba(255,255,255,0.12)", backdropFilter: "blur(12px)", boxShadow: "0 8px 32px rgba(0,0,0,0.6)" }}>
             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: "rgba(255,255,255,0.05)" }}>
               <MapPin size={12} className="text-amber-500" />
@@ -246,7 +267,6 @@ export default function LandList() {
           <p className="text-white/40 mt-2 text-sm">{visibleLands.length} properties in current view</p>
         </div>
 
-        {/* Banners only shown after status resolves — no flash */}
         {statusLoaded && <AccountBanner pinIsSet={pinIsSet} kycStatus={kycStatus} />}
 
         {/* Map */}
@@ -263,11 +283,9 @@ export default function LandList() {
                 <Maximize2 size={13} /> Fullscreen
               </button>
             </div>
-          <div className="relative rounded-2xl overflow-hidden border border-white/10 mb-10 shadow-2xl shadow-black/50">
             <div className="h-150 w-full">
               <MapWithNoSSR {...mapProps} />
             </div>
-          </div>
           </div>
         )}
 
@@ -277,8 +295,7 @@ export default function LandList() {
             const priceKobo = getLandPrice(land);
             const priceTag  = getPriceTag(priceKobo);
             const isHovered = hoverLandId === land.id;
-
-            const imageUrl = getLandImage(land);
+            const imageUrl  = getLandImage(land);
 
             return (
               <div key={land.id}
@@ -317,7 +334,6 @@ export default function LandList() {
                     </div>
                   )}
 
-                  {/* Lock icon when user hasn't met requirements */}
                   {statusLoaded && !canTransact && (
                     <div className="absolute bottom-3 right-3 w-7 h-7 rounded-lg bg-black/60 backdrop-blur flex items-center justify-center border border-white/10"
                       title={!pinIsSet ? "Set transaction PIN to invest" : "Complete KYC to invest"}>
@@ -360,22 +376,13 @@ export default function LandList() {
                       style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}>
                       View Details
                     </Link>
+
                     <button
-                      onClick={() => {
-                        if (showHeatmap) setShowHeatmap(false);
-                        if (isFullScreen) setIsFullScreen(false);
-                        setTimeout(() => {
-                          mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-                          setTimeout(() => {
-                            setActiveLandId(land.id);
-                            if (land.lat && land.lng) setFlyTarget({ lat: +land.lat, lng: +land.lng });
-                            setTimeout(() => setActiveLandId(null), 3000);
-                          }, 400);
-                        }, 100);
-                      }}
-                      className="px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
-                      title="View on map">
-                      <MapPin size={15} className="text-white/50" />
+                      onClick={() => focusLandOnMap(land)}
+                      className="px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-amber-500/30 transition-all group/pin"
+                      title="Show on map"
+                    >
+                      <MapPin size={15} className="text-white/50 group-hover/pin:text-amber-400 transition-colors" />
                     </button>
                   </div>
                 </div>
