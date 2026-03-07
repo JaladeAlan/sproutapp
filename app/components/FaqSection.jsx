@@ -15,10 +15,10 @@ const faqs = [
     q: "Are all properties verified?",
     a: "Yes. Every property undergoes rigorous verification — we ensure all lands have proper documentation, clear titles, and are free from legal disputes before listing.",
   },
-  {
-    q: "How long does documentation take?",
-    a: "Once payment is completed, documentation and title transfer typically takes 2–4 weeks. Our team handles all paperwork and keeps you updated throughout.",
-  },
+  // {
+  //   q: "How long does documentation take?",
+  //   a: "Once payment is completed, documentation and title transfer typically takes 2–4 weeks. Our team handles all paperwork and keeps you updated throughout.",
+  // },
   {
     q: "What is the minimum investment?",
     a: "You can start with as low as ₦5,000 depending on the property. Each listing shows the price per unit so you can invest according to your budget.",

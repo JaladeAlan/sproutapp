@@ -212,7 +212,7 @@ export default async function Homepage() {
                 </h2>
               </div>
               <Link
-                href="/land"
+                href="/lands"
                 className="flex items-center gap-1.5 text-amber-500 hover:text-amber-400 text-sm font-semibold transition-colors"
               >
                 View all <ArrowRight size={14} />
