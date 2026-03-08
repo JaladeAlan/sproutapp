@@ -185,9 +185,7 @@ export default function WalletPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0D1F1A] px-4"
         style={{ fontFamily: "'DM Sans', sans-serif" }}>
-        <Toaster position="top-right" toastOptions={{
-          success: { style: { background: "#0D1F1A", color: "#6ee7b7", border: "1px solid #065f46" } },
-        }} />
+  
         <div className="text-center max-w-sm w-full">
           <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-5">
             {isServer
@@ -227,12 +225,6 @@ export default function WalletPage() {
       style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif" }}>
       <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0"
         style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-
-      <Toaster position="top-right" toastOptions={{
-        success: { style: { background: "#0D1F1A", color: "#6ee7b7", border: "1px solid #065f46" } },
-        error:   { style: { background: "#0D1F1A", color: "#fca5a5", border: "1px solid #7f1d1d" } },
-        loading: { style: { background: "#0D1F1A", color: "#fff",    border: "1px solid rgba(255,255,255,0.1)" } },
-      }} />
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
 
