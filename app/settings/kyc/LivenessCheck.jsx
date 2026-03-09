@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import {
   LIVENESS_PROMPTS,
-  SAMPLE_W, SAMPLE_H, STILL_CONFIRM_FRAMES,
+  SAMPLE_W, SAMPLE_H,
   MAX_RETRIES_PER_PROMPT, COUNTDOWN_SECS,
   shuffle,
 } from "./constants";
@@ -17,14 +17,13 @@ import {
 // ─── Adaptive detection constants ────────────────────────────────────────────
 const BASELINE_FRAMES   = 40;   // frames sampled at warmup to learn idle noise
 const EMA_ALPHA         = 0.25; // smoother EMA — less sensitive to single-frame dips
-const ACCUMULATOR_NEED  = 8;    // total above-threshold frames needed (non-consecutive)
-const ACCUMULATOR_DECAY = 0.15; // fractional decay per below-threshold frame (not a hard reset)
-
+const ACCUMULATOR_NEED  = 8;    // total above-threshold frames needed
+const ACCUMULATOR_DECAY = 1.2;  
 // How many × the idle baseline counts as "deliberate action".
 const ACTION_MULTIPLIER = { eye: 2.2, smile: 2.0, left: 2.8, right: 2.8, nod: 2.4, _default: 2.5 };
 
-// Stillness for capture: EMA must drop below this × baseline
-const STILL_RATIO       = 1.2;
+// Min mean brightness (0–255) — below this = dark/covered camera, reject
+const MIN_BRIGHTNESS    = 20;
 
 // Extra seconds added to countdown vs the constant in constants.js
 const COUNTDOWN_BONUS   = 5;   // effective = COUNTDOWN_SECS + COUNTDOWN_BONUS
@@ -103,7 +102,7 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
 
   useEffect(() => () => stopStream(), [stopStream]);
 
-  // ── Retake: parent sets captured → null────────────────────
+  // ── Retake: parent sets captured → null, we fully reset ────────────────────
   const prevCapturedRef = useRef(captured);
   useEffect(() => {
     if (prevCapturedRef.current && !captured) {
@@ -168,6 +167,23 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
     return diff / (grey.length * 255);
   }, []);
 
+  // ── Brightness check — rejects dark/covered camera ───────────────────────
+  const measureBrightness = useCallback(() => {
+    const video  = videoRef.current;
+    const canvas = sampleRef.current;
+    if (!video || !canvas || video.readyState < 2) return 255;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0, SAMPLE_W, SAMPLE_H);
+    const { data } = ctx.getImageData(0, 0, SAMPLE_W, SAMPLE_H);
+    let sum = 0;
+    const n = SAMPLE_W * SAMPLE_H;
+    for (let i = 0; i < n; i++) {
+      const p = i * 4;
+      sum += (data[p] * 77 + data[p + 1] * 150 + data[p + 2] * 29) >> 8;
+    }
+    return sum / n; // 0–255
+  }, []);
+
   // ── Selfie capture ──────────────────────────────────────────────────────────
   const captureSelfie = useCallback(() => {
     const video  = videoRef.current;
@@ -189,28 +205,15 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
   // ── Stillness → capture ───────────────────────────────────────────────────
   const startStillnessCapture = useCallback(() => {
     setPhase("stillness");
-    prevDataRef.current    = null;
-    emaRef.current         = 0;
-    detectionOnRef.current = true;
-    let stillFrames = 0;
-    // Use learned baseline; fall back to a small safe value
-    const stillThresh = (idleBaselineRef.current ?? 0.002) * STILL_RATIO;
-    const loop = () => {
-      if (!detectionOnRef.current) return;
-      const raw = measureMotion();
-      emaRef.current = EMA_ALPHA * raw + (1 - EMA_ALPHA) * emaRef.current;
-      if (emaRef.current < stillThresh) {
-        stillFrames++;
-        if (stillFrames >= STILL_CONFIRM_FRAMES) {
-          detectionOnRef.current = false;
-          captureSelfie();
-          return;
-        }
-      } else { stillFrames = 0; }
-      rafRef.current = requestAnimationFrame(loop);
-    };
-    rafRef.current = requestAnimationFrame(loop);
-  }, [measureMotion, captureSelfie]);
+    detectionOnRef.current = false;          // stop any running detection RAF
+    cancelAnimationFrame(rafRef.current);
+    prevDataRef.current = null;
+    emaRef.current      = 0;
+    // 900 ms settle time — enough for EMA to decay and user to read "hold still"
+    setTimeout(() => {
+      captureSelfie();
+    }, 900);
+  }, [captureSelfie]);
 
   // ── Timeout → retry same prompt or hard-fail ────────────────────────────────
   const handleTimeout = useCallback((promptIndex) => {
@@ -287,11 +290,12 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
     let detectedThisRound = false;
     let motionFrames      = 0;
     let baselineSamples   = [];
+    let brightnessSamples = [];
 
     // Reuse previously learned baseline if available (e.g. 2nd prompt, retries)
-    let baselineDone      = !!idleBaselineRef.current;
-    let multiplier        = ACTION_MULTIPLIER[promptIcon] ?? ACTION_MULTIPLIER._default;
-    let effectiveThresh   = idleBaselineRef.current
+    let baselineDone    = !!idleBaselineRef.current;
+    let multiplier      = ACTION_MULTIPLIER[promptIcon] ?? ACTION_MULTIPLIER._default;
+    let effectiveThresh = idleBaselineRef.current
       ? idleBaselineRef.current * multiplier
       : null;
 
@@ -304,14 +308,24 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
       // ── Phase 1: learn idle baseline ──────────────────────────────────────
       if (!baselineDone) {
         baselineSamples.push(raw);
+        brightnessSamples.push(measureBrightness());
+
         if (baselineSamples.length >= BASELINE_FRAMES) {
-          // Median of middle 60% — excludes any accidental fidgets
+          // Dark / covered camera check
+          const avgBrightness = brightnessSamples.reduce((a, b) => a + b, 0) / brightnessSamples.length;
+          if (avgBrightness < MIN_BRIGHTNESS) {
+            stopStream();
+            setErrorMsg("Camera appears dark or covered. Please ensure you are well-lit and facing the camera.");
+            setPhase("error");
+            return;
+          }
+
+          // Median of middle 60% to exclude accidental fidgets
           const sorted  = [...baselineSamples].sort((a, b) => a - b);
           const lo      = Math.floor(sorted.length * 0.2);
           const hi      = Math.ceil(sorted.length * 0.8);
           const slice   = sorted.slice(lo, hi);
           const median  = slice.reduce((a, b) => a + b, 0) / slice.length;
-          // Clamp: never below a hardware minimum (frozen/dark feed)
           const learned = Math.max(median, 0.0006);
           idleBaselineRef.current = learned;
           effectiveThresh  = learned * multiplier;
@@ -328,7 +342,7 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
       if (emaRef.current >= effectiveThresh) {
         motionFrames = Math.min(motionFrames + 1, ACCUMULATOR_NEED * 1.5);
       } else {
-        motionFrames = Math.max(0, motionFrames - ACCUMULATOR_DECAY * ACCUMULATOR_NEED);
+        motionFrames = Math.max(0, motionFrames - ACCUMULATOR_DECAY);
       }
 
       if (!detectedThisRound && motionFrames >= ACCUMULATOR_NEED) {
@@ -342,7 +356,7 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
-  }, [measureMotion]);
+  }, [measureMotion, measureBrightness, stopStream]);
 
   // ── Countdown ─────────────────────────────────────────────────────────────
   const startDetectionCountdown = useCallback((promptIcon, idx) => {
