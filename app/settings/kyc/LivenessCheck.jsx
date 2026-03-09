@@ -16,11 +16,18 @@ import {
 
 // ─── Adaptive detection constants ────────────────────────────────────────────
 const BASELINE_FRAMES   = 40;   // frames sampled at warmup to learn idle noise
-const EMA_ALPHA         = 0.30;
-const CONFIRM_FRAMES    = 3;    // consecutive frames above threshold to confirm
-const ACTION_MULTIPLIER = { eye: 2.8, smile: 2.5, left: 3.5, right: 3.5, nod: 3.0, _default: 3.0 };
+const EMA_ALPHA         = 0.25; // smoother EMA — less sensitive to single-frame dips
+const ACCUMULATOR_NEED  = 8;    // total above-threshold frames needed (non-consecutive)
+const ACCUMULATOR_DECAY = 0.15; // fractional decay per below-threshold frame (not a hard reset)
 
+// How many × the idle baseline counts as "deliberate action".
+const ACTION_MULTIPLIER = { eye: 2.2, smile: 2.0, left: 2.8, right: 2.8, nod: 2.4, _default: 2.5 };
+
+// Stillness for capture: EMA must drop below this × baseline
 const STILL_RATIO       = 1.2;
+
+// Extra seconds added to countdown vs the constant in constants.js
+const COUNTDOWN_BONUS   = 5;   // effective = COUNTDOWN_SECS + COUNTDOWN_BONUS
 
 // ── Prompt icon ───────────────────────────────────────────────────────────────
 function PromptIcon({ icon, size = 18 }) {
@@ -96,7 +103,7 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
 
   useEffect(() => () => stopStream(), [stopStream]);
 
-  // ── Retake: parent sets captured → null, we fully reset ────────────────────
+  // ── Retake: parent sets captured → null────────────────────
   const prevCapturedRef = useRef(captured);
   useEffect(() => {
     if (prevCapturedRef.current && !captured) {
@@ -137,8 +144,6 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
   }, [stopStream]);
 
   // ── Motion measurement ────────────────────────────────────────────────────
-  // Crops to the centre 60% of the frame (face region) to reduce background
-  // lighting flicker that pollutes full-frame diffs.
   const measureMotion = useCallback(() => {
     const video  = videoRef.current;
     const canvas = sampleRef.current;
@@ -317,17 +322,16 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
       }
 
       // ── Phase 2: detect action ────────────────────────────────────────────
-      // Bar shows progress toward threshold (100% = threshold crossed)
       const pct = Math.min(100, Math.round((emaRef.current / effectiveThresh) * 80));
       setMotionPct(pct);
 
       if (emaRef.current >= effectiveThresh) {
-        motionFrames++;
+        motionFrames = Math.min(motionFrames + 1, ACCUMULATOR_NEED * 1.5);
       } else {
-        motionFrames = 0; // must be consecutive — prevents noise spikes
+        motionFrames = Math.max(0, motionFrames - ACCUMULATOR_DECAY * ACCUMULATOR_NEED);
       }
 
-      if (!detectedThisRound && motionFrames >= CONFIRM_FRAMES) {
+      if (!detectedThisRound && motionFrames >= ACCUMULATOR_NEED) {
         detectedThisRound      = true;
         detectionOnRef.current = false;
         clearInterval(timerRef.current);
@@ -342,8 +346,9 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
 
   // ── Countdown ─────────────────────────────────────────────────────────────
   const startDetectionCountdown = useCallback((promptIcon, idx) => {
-    timeLeftRef.current = COUNTDOWN_SECS;
-    setTimeLeft(COUNTDOWN_SECS);
+    const totalSecs = COUNTDOWN_SECS + COUNTDOWN_BONUS;
+    timeLeftRef.current = totalSecs;
+    setTimeLeft(totalSecs);
 
     timerRef.current = setInterval(() => {
       timeLeftRef.current -= 1;
@@ -524,7 +529,7 @@ export default function LivenessCheck({ onCapture, captured, onRetake, fullHeigh
                 stroke={retryCount > 0 ? "#f97316" : "#f59e0b"}
                 strokeWidth="2.5" strokeLinecap="round"
                 strokeDasharray={`${2 * Math.PI * 18}`}
-                animate={{ strokeDashoffset: 2 * Math.PI * 18 * (1 - timeLeft / COUNTDOWN_SECS) }}
+                animate={{ strokeDashoffset: 2 * Math.PI * 18 * (1 - timeLeft / (COUNTDOWN_SECS + COUNTDOWN_BONUS)) }}
                 transition={{ duration: 0.9, ease: "linear" }} />
             </svg>
             <span className="text-white font-bold text-sm z-10 relative tabular-nums">{timeLeft}</span>
