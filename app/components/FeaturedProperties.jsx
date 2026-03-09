@@ -42,7 +42,7 @@ export default function FeaturedProperties({ lands }) {
         {lands.map((land, i) => {
           const imageUrl =
             land.images?.length > 0 ? land.images[0].url : "/no-image.jpeg";
-          const pricePerUnit = (land.price_per_unit_kobo || 0) / 100;
+          const pricePerUnit = (land.current_price_per_unit_kobo || 0) / 100;
 
           return (
             <div
