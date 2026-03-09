@@ -103,7 +103,11 @@ function HelpCard() {
     <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
       <p className="text-amber-400 text-xs font-bold mb-1">Need help?</p>
       <p className="text-white/30 text-xs leading-relaxed">
-        Contact support if you run into any issues with your account settings.
+        Contact{" "}
+        <a href="/support" className="text-amber-400 hover:underline">
+          support
+        </a>{" "}
+        if you run into any issues with your account settings.
       </p>
     </div>
   );

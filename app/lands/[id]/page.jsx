@@ -242,11 +242,15 @@ export default function LandDetails() {
 
         {/* Image gallery — reads image_url from API */}
         {slides.length > 0 && (
-          <div className={`grid gap-3 mb-10 rounded-2xl overflow-hidden border border-white/10 ${slides.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}>
+         <div className={`grid gap-3 mb-10 rounded-2xl overflow-hidden border border-white/10 ${
+            slides.length >= 3 ? "grid-cols-2" : "grid-cols-1"
+          }`}>
             {slides.map((slide, i) => (
               <div key={i}
-                className={`relative overflow-hidden group cursor-pointer ${i === 0 && slides.length > 1 ? "row-span-2" : ""}`}
-                style={{ height: i === 0 ? "420px" : "205px" }}
+                className={`relative overflow-hidden group cursor-pointer ${
+                  i === 0 && slides.length >= 3 ? "row-span-2" : ""
+                }`}
+                style={{ height: i === 0 && slides.length >= 3 ? "420px" : "300px" }}
                 onClick={() => { setPhotoIndex(i); setLightboxOpen(true); }}
               >
                 <img

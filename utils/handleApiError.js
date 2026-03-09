@@ -19,6 +19,11 @@ export default function handleApiError(error, fallback = "Something went wrong."
     return;
   }
 
+  if (status === 403) {
+    toast.error(data?.message || "Action not permitted.");
+    return;
+  }
+
   if (data?.message) { toast.error(data.message); return; }
   if (data?.error)   { toast.error(data.error);   return; }
 
