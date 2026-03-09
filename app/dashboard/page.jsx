@@ -88,12 +88,13 @@ function useDashboardData(enabled) {
       const me = meRes.data?.user ?? meRes.data?.data ?? {};
 
       setStats({
-        balance:             me.balance_naira          ?? (me.balance_kobo != null ? me.balance_kobo / 100 : 0),
+        balance:             (s.balance_kobo          ?? 0) / 100,
         current_portfolio_value:      (s.current_portfolio_value_kobo    ?? 0) / 100,
+        total_invested:      (s.total_invested_kobo       ?? 0) / 100,
         lands_owned:          s.lands_owned       ?? 0,
         units_owned:          s.units_owned       ?? 0,
         total_withdrawn:     (s.total_withdrawn_kobo   ?? 0) / 100,
-        pending_withdrawals:  null,
+        pending_withdrawals:  s.pending_withdrawals,
       });
 
       const txList = txRes.data?.data ?? [];
