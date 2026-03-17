@@ -57,8 +57,10 @@ export default function VerifyEmail() {
   const handleVerify = async (e) => {
     e.preventDefault();
     const code = otp.join("");
-    if (code.length !== 6) { const m = "Please enter all 6 digits."; setError(m); toast.error(m); return; }
-
+    if (code.length !== 6) {
+      const m = "Please enter all 6 digits.";
+      setError(m); toast.error(m); return;
+    }
     setLoading(true); setError(""); setMessage("");
     try {
       await api.post("/email/verify/code", { email, verification_code: code });
@@ -94,7 +96,7 @@ export default function VerifyEmail() {
 
   return (
     <div
-      className="min-h-screen bg-[#0D1F1A] flex items-center justify-center px-4 py-12 relative overflow-hidden"
+      className="min-h-screen bg-[#0D1F1A] flex items-center justify-center px-4 py-10 relative overflow-hidden"
       style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif" }}
     >
       {/* Background */}
@@ -105,49 +107,55 @@ export default function VerifyEmail() {
       <div className="absolute bottom-0 left-0 w-[30vw] h-[30vw] rounded-full opacity-10 pointer-events-none"
         style={{ background: "radial-gradient(circle, #2D7A55 0%, transparent 70%)" }} />
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-sm">
+
         {/* Logo */}
-        <div className="text-center mb-8">
-          <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-600 mb-2">Sproutvest</p>
-          <h1 className="text-3xl font-bold text-white" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+        <div className="text-center mb-6">
+          <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-600 mb-1">Sproutvest</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             Land Investment
           </h1>
         </div>
 
         {/* Card */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm p-8 shadow-2xl">
+        <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-sm p-6 sm:p-8 shadow-2xl">
+
           {/* Icon header */}
-          <div className="flex flex-col items-center mb-7">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center mb-4">
-              <MailCheck className="text-amber-500" size={26} />
+          <div className="flex flex-col items-center mb-6">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-amber-500/15 border border-amber-500/20 flex items-center justify-center mb-3">
+              <MailCheck className="text-amber-500" size={24} />
             </div>
-            <h2 className="text-2xl font-bold text-white" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            <h2 className="text-xl sm:text-2xl font-bold text-white text-center"
+              style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               Verify Your Email
             </h2>
             {email && (
-              <p className="text-white/40 text-sm mt-2 text-center leading-relaxed">
-                We sent a 6-digit code to<br />
-                <span className="text-white/70 font-semibold">{email}</span>
+              <p className="text-white/40 text-sm mt-2 text-center leading-relaxed px-2">
+                We sent a 6-digit code to{" "}
+                <span className="text-white/70 font-semibold break-all">{email}</span>
               </p>
             )}
-            <p className="text-white/25 text-xs mt-1">Code expires in 10 minutes</p>
+            <p className="text-white/25 text-xs mt-1.5">Code expires in 10 minutes</p>
           </div>
 
           {/* Messages */}
           {message && (
-            <div className="mb-5 flex items-start gap-2.5 p-3.5 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-sm">
-              <span>✓</span><span>{message}</span>
+            <div className="mb-5 flex items-start gap-2.5 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-sm">
+              <span className="shrink-0">✓</span><span>{message}</span>
             </div>
           )}
           {error && (
-            <div className="mb-5 flex items-start gap-2.5 p-3.5 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-sm">
-              <span>⚠</span><span>{error}</span>
+            <div className="mb-5 flex items-start gap-2.5 p-3 rounded-xl border border-red-500/20 bg-red-500/10 text-red-400 text-sm">
+              <span className="shrink-0">⚠</span><span>{error}</span>
             </div>
           )}
 
           <form onSubmit={handleVerify}>
-            {/* OTP inputs */}
-            <div className="flex justify-center gap-2.5 mb-7" onPaste={handlePaste}>
+            <div
+              className="flex justify-center gap-2 sm:gap-2.5 mb-6"
+              onPaste={handlePaste}
+            >
               {otp.map((digit, idx) => (
                 <input
                   key={idx}
@@ -159,11 +167,15 @@ export default function VerifyEmail() {
                   onKeyDown={(e) => handleKeyDown(e, idx)}
                   ref={(el) => (inputRefs.current[idx] = el)}
                   autoFocus={idx === 0}
-                  className={`w-12 h-14 text-center rounded-xl border-2 text-lg font-bold bg-white/5 text-white outline-none transition-all ${
-                    digit
+                  className={`
+                    w-10 h-12 sm:w-12 sm:h-14
+                    text-center rounded-xl border-2 text-base sm:text-lg font-bold
+                    bg-white/5 text-white outline-none transition-all
+                    ${digit
                       ? "border-amber-500/60 bg-amber-500/10 text-amber-400"
                       : "border-white/10 hover:border-white/25 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20"
-                  }`}
+                    }
+                  `}
                 />
               ))}
             </div>
@@ -175,17 +187,17 @@ export default function VerifyEmail() {
               className="w-full py-3.5 rounded-xl font-bold text-[#0D1F1A] text-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}
             >
-              {loading ? (
-                <><Loader2 className="animate-spin" size={16} /> Verifying...</>
-              ) : "Verify Email"}
+              {loading
+                ? <><Loader2 className="animate-spin" size={16} /> Verifying...</>
+                : "Verify Email"
+              }
             </button>
           </form>
 
           {/* Resend */}
-          <div className="mt-6 text-center">
+          <div className="mt-5 text-center">
             <p className="text-sm text-white/30">
               Didn't receive the code?{" "}
-
               {cooldown > 0 ? (
                 <span className="text-white/20 cursor-not-allowed">
                   Resend in{" "}
