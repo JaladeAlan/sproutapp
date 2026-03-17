@@ -21,8 +21,6 @@ export const NIGERIAN_STATES = [
 
 // ─── Liveness prompts ─────────────────────────────────────────────────────────
 export const LIVENESS_PROMPTS = [
-  { text: "Blink slowly twice",   icon: "eye",   duration: 8 },
-  { text: "Smile naturally",      icon: "smile", duration: 8 },
   { text: "Turn your head left",  icon: "left",  duration: 8 },
   { text: "Turn your head right", icon: "right", duration: 8 },
   { text: "Nod your head gently", icon: "nod",   duration: 8 },
@@ -63,7 +61,7 @@ export const BASELINE_FRAMES        = 40;
 // Multiplier over the idle baseline that counts as a "deliberate action".
 // Keyed by prompt icon; _default used when no specific entry exists.
 export const ACTION_MULTIPLIER      = {
-  eye: 2.2, smile: 2.0, left: 2.8, right: 2.8, nod: 2.4, _default: 2.5,
+  left: 2.8, right: 2.8, nod: 2.4, _default: 2.5,
 };
 
 // Minimum mean brightness (0–255) — below this the camera is dark/covered.
