@@ -11,9 +11,49 @@ import {
   WifiOff, RefreshCw, ServerCrash,
 } from "lucide-react";
 
-const FEE_PERCENT = 2;
-const FEE_CAP = 3000;
+const FEE_PERCENT  = 2;
+const FEE_CAP      = 3000;
 const QUICK_AMOUNTS = [1000, 5000, 10000, 50000];
+
+const GATEWAYS = [
+  {
+    id: "monnify",
+    label: "Monnify",
+    description: "Bank transfer & USSD",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" aria-hidden>
+        <rect x="2" y="5" width="20" height="14" rx="3" fill="currentColor" opacity=".15" />
+        <rect x="2" y="9" width="20" height="3" fill="currentColor" opacity=".4" />
+        <rect x="5" y="15" width="4" height="2" rx="1" fill="currentColor" opacity=".6" />
+      </svg>
+    ),
+  },
+  {
+    id: "paystack",
+    label: "Paystack",
+    description: "Card & bank payments",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" aria-hidden>
+        <circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15" />
+        <path d="M7 12h10M7 8.5h6M7 15.5h8" stroke="currentColor" strokeWidth="1.8"
+          strokeLinecap="round" opacity=".8" />
+      </svg>
+    ),
+  },
+  {
+    id: "opay",
+    label: "OPay",
+    description: "Wallet & card",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" aria-hidden>
+        <circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15" />
+        <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="1.8"
+          strokeLinecap="round" strokeLinejoin="round" opacity=".8" />
+        <circle cx="12" cy="12" r="3" fill="currentColor" opacity=".35" />
+      </svg>
+    ),
+  },
+];
 
 export default function WalletPage() {
   const [balance, setBalance]               = useState(0);
@@ -96,7 +136,7 @@ export default function WalletPage() {
     try {
       const res = await api.post("/deposit", { amount: amountNaira * 100, gateway });
       if (res.data.payment_url) {
-        toast.success(`Redirecting to ${gateway}...`);
+        toast.success(`Redirecting to ${gateway}…`);
         setTimeout(() => window.location.assign(res.data.payment_url), 400);
       }
     } catch (err) {
@@ -221,6 +261,9 @@ export default function WalletPage() {
   return (
     <div className="min-h-screen bg-[#0D1F1A] relative"
       style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif" }}>
+      <Toaster position="top-right" />
+
+      {/* Dot grid */}
       <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0"
         style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
 
@@ -265,6 +308,8 @@ export default function WalletPage() {
 
         {/* Deposit / Withdraw Panel */}
         <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+
+          {/* Tabs */}
           <div className="flex border-b border-white/10">
             {[
               { id: "deposit",  label: "Deposit",  icon: <TrendingUp  size={14} /> },
@@ -282,34 +327,69 @@ export default function WalletPage() {
           </div>
 
           <div className="p-4 sm:p-6">
+
+            {/* ── DEPOSIT TAB ──────────────────────────────────────────────── */}
             {activeTab === "deposit" ? (
               <div className="space-y-5">
+
+                {/* Gateway selector */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">Payment Gateway</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {["monnify", "paystack"].map((p) => (
-                      <button key={p} type="button" onClick={() => setGateway(p)}
-                        className={`py-3 px-4 rounded-xl border text-sm font-bold uppercase tracking-wider transition-all ${
-                          gateway === p
-                            ? "text-[#0D1F1A] border-transparent"
-                            : "bg-white/5 border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"
-                        }`}
-                        style={gateway === p ? { background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" } : {}}>
-                        {p.charAt(0).toUpperCase() + p.slice(1)}
-                      </button>
-                    ))}
+                  <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-3">
+                    Payment Gateway
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    {GATEWAYS.map((gw) => {
+                      const active = gateway === gw.id;
+                      return (
+                        <button
+                          key={gw.id}
+                          type="button"
+                          onClick={() => setGateway(gw.id)}
+                          className={`relative flex items-center gap-3 px-4 py-3 rounded-xl border text-left transition-all ${
+                            active
+                              ? "border-amber-500/50 bg-amber-500/10"
+                              : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/8"
+                          }`}
+                        >
+                          {/* Active indicator dot */}
+                          {active && (
+                            <span className="absolute top-2.5 right-2.5 w-1.5 h-1.5 rounded-full bg-amber-500" />
+                          )}
+
+                          <span className={active ? "text-amber-400" : "text-white/30"}>
+                            {gw.icon}
+                          </span>
+
+                          <span className="min-w-0">
+                            <span className={`block text-sm font-bold leading-tight ${
+                              active ? "text-amber-400" : "text-white/60"
+                            }`}>
+                              {gw.label}
+                            </span>
+                            <span className="block text-[11px] text-white/25 mt-0.5 leading-tight truncate">
+                              {gw.description}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
+                {/* Amount */}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">Amount (₦)</label>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">
+                    Amount (₦)
+                  </label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 font-semibold">₦</span>
-                    <input type="number" min={1000} value={depositAmount}
+                    <input
+                      type="number" min={1000} value={depositAmount}
                       onChange={(e) => setDepositAmount(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleDeposit()}
                       placeholder="1,000 minimum"
-                      className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all" />
+                      className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
+                    />
                   </div>
                   <div className="flex flex-wrap gap-2 mt-3">
                     {QUICK_AMOUNTS.map((a) => (
@@ -319,13 +399,19 @@ export default function WalletPage() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-white/20 mt-2">{FEE_PERCENT}% fee · max ₦{FEE_CAP.toLocaleString()} cap</p>
+                  <p className="text-xs text-white/20 mt-2">
+                    {FEE_PERCENT}% processing fee · max ₦{FEE_CAP.toLocaleString()} cap
+                  </p>
                 </div>
 
+                {/* Fee preview */}
                 {depositAmount && Number(depositAmount) >= 1000 && (
                   <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-2">
                     <FeeRow label="Deposit Amount" value={`₦${Number(depositAmount).toLocaleString()}`} />
-                    <FeeRow label={`Fee (${FEE_PERCENT}%${isFeeCapApplied ? ", capped" : ""})`} value={`₦${feePreview.toLocaleString()}`} />
+                    <FeeRow
+                      label={`Fee (${FEE_PERCENT}%${isFeeCapApplied ? ", capped" : ""})`}
+                      value={`₦${feePreview.toLocaleString()}`}
+                    />
                     <div className="border-t border-amber-500/20 pt-2 flex justify-between items-center">
                       <span className="text-xs font-bold uppercase tracking-wider text-amber-500/70">Total</span>
                       <span className="text-xl font-bold text-amber-400"
@@ -336,10 +422,16 @@ export default function WalletPage() {
                   </div>
                 )}
 
-                <ActionButton onClick={handleDeposit} loading={loading === "deposit"}
-                  disabled={!depositAmount || Number(depositAmount) < 1000} label="Continue to Payment" />
+                <ActionButton
+                  onClick={handleDeposit}
+                  loading={loading === "deposit"}
+                  disabled={!depositAmount || Number(depositAmount) < 1000}
+                  label={`Pay with ${GATEWAYS.find((g) => g.id === gateway)?.label ?? gateway}`}
+                />
               </div>
+
             ) : (
+              /* ── WITHDRAW TAB ──────────────────────────────────────────── */
               <div className="space-y-5">
                 <div className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/5 p-4">
                   <AlertCircle size={15} className="text-amber-500 shrink-0 mt-0.5" />
@@ -353,11 +445,13 @@ export default function WalletPage() {
                   <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">Amount (₦)</label>
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 font-semibold">₦</span>
-                    <input type="number" min={1000} max={balance / 100} value={withdrawAmount}
+                    <input
+                      type="number" min={1000} max={balance / 100} value={withdrawAmount}
                       onChange={(e) => setWithdrawAmount(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleWithdraw()}
                       placeholder="1,000 minimum"
-                      className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all" />
+                      className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 pl-10 pr-4 py-3 rounded-xl text-sm outline-none transition-all"
+                    />
                   </div>
                   <div className="flex flex-wrap gap-2 mt-3">
                     {QUICK_AMOUNTS.filter((a) => a <= balance / 100).map((a) => (
@@ -378,15 +472,21 @@ export default function WalletPage() {
 
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">Transaction PIN</label>
-                  <input type="password" inputMode="numeric" maxLength={4} value={pin}
+                  <input
+                    type="password" inputMode="numeric" maxLength={4} value={pin}
                     onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                     onKeyDown={(e) => e.key === "Enter" && handleWithdraw()}
                     placeholder="••••"
-                    className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-3 rounded-xl text-center text-2xl tracking-[0.5em] outline-none transition-all" />
+                    className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-3 rounded-xl text-center text-2xl tracking-[0.5em] outline-none transition-all"
+                  />
                 </div>
 
-                <ActionButton onClick={handleWithdraw} loading={loading === "withdraw"}
-                  disabled={!withdrawAmount || !pin || pin.length !== 4} label="Withdraw Funds" />
+                <ActionButton
+                  onClick={handleWithdraw}
+                  loading={loading === "withdraw"}
+                  disabled={!withdrawAmount || !pin || pin.length !== 4}
+                  label="Withdraw Funds"
+                />
               </div>
             )}
           </div>
@@ -413,16 +513,15 @@ export default function WalletPage() {
             ) : (
               <div className="space-y-2">
                 {transactions.map((t, i) => {
-                  const isDeposit = t.type === "Deposit";
+                  const isDeposit   = t.type === "Deposit";
                   const statusStyle = getStatusStyle(t.status);
-                  const txDate = t.date ?? t.created_at;
+                  const txDate      = t.date ?? t.created_at;
 
                   return (
                     <div
                       key={t.reference ?? i}
                       className="rounded-xl border border-white/[0.07] bg-white/[0.03] hover:border-white/[0.12] hover:bg-white/[0.05] transition-all p-3 sm:p-4"
                     >
-                      {/* Mobile & Desktop: single unified layout */}
                       <div className="flex items-start gap-3">
 
                         {/* Icon */}
@@ -434,11 +533,10 @@ export default function WalletPage() {
                             : <ArrowUpCircle   size={16} className="text-blue-400" />}
                         </div>
 
-                        {/* Middle: type + date */}
+                        {/* Type + date */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-bold text-white leading-none">{t.type}</p>
-                            {/* Status badge — always visible */}
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border ${statusStyle}`}>
                               {getStatusIcon(t.status)}
                               {t.status}
@@ -447,7 +545,7 @@ export default function WalletPage() {
                           <p className="text-xs text-white/30 mt-1">{formatDate(txDate)}</p>
                         </div>
 
-                        {/* Amount — right aligned */}
+                        {/* Amount */}
                         <p className={`font-bold text-sm tabular-nums shrink-0 ${
                           isDeposit ? "text-emerald-400" : "text-blue-400"
                         }`}>
@@ -479,13 +577,16 @@ function FeeRow({ label, value }) {
 
 function ActionButton({ onClick, loading, disabled, label }) {
   return (
-    <button onClick={onClick} disabled={loading || disabled}
+    <button
+      onClick={onClick}
+      disabled={loading || disabled}
       className="w-full py-3.5 rounded-xl font-bold text-[#0D1F1A] transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
-      style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}>
+      style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}
+    >
       {loading ? (
         <span className="flex items-center justify-center gap-2">
           <div className="w-4 h-4 border-2 border-[#0D1F1A]/40 border-t-[#0D1F1A] rounded-full animate-spin" />
-          Processing...
+          Processing…
         </span>
       ) : label}
     </button>
