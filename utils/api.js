@@ -18,7 +18,7 @@ api.interceptors.request.use((config) => {
 
 // Track whether a refresh is already in progress to avoid parallel refresh calls
 let isRefreshing = false;
-let refreshQueue = []; // requests waiting for the new token
+let refreshQueue = [];
 
 const processQueue = (error, token = null) => {
   refreshQueue.forEach(({ resolve, reject }) => {
@@ -28,6 +28,11 @@ const processQueue = (error, token = null) => {
   refreshQueue = [];
 };
 
+const SKIP_REFRESH_URLS = ["/me", "/login", "/refresh", "/logout"];
+
+const shouldSkipRefresh = (url = "") =>
+  SKIP_REFRESH_URLS.some((path) => url.includes(path));
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -36,16 +41,18 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       typeof window !== "undefined" &&
-      !originalRequest._retry  
+      !originalRequest._retry &&
+      !shouldSkipRefresh(originalRequest.url)
     ) {
       const token = localStorage.getItem("token");
 
-      // No token at all — not logged in, go to login
+      // No token at all — not logged in
       if (!token) {
         window.location.href = "/login";
         return Promise.reject(error);
       }
 
+      // Queue parallel requests while refresh is in progress
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           refreshQueue.push({ resolve, reject });
@@ -61,7 +68,6 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Call the /refresh endpoint with the expired token to get a new one
         const res = await axios.post(
           `${process.env.NEXT_PUBLIC_API_URL}/refresh`,
           {},
@@ -74,18 +80,17 @@ api.interceptors.response.use(
         localStorage.setItem("token", newToken);
         api.defaults.headers.common.Authorization = `Bearer ${newToken}`;
 
-        // Unblock any queued requests with the new token
         processQueue(null, newToken);
 
-        // Retry the original request that triggered the 401
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
-
       } catch (refreshError) {
-        // Refresh failed — token is truly dead, clear and redirect
+        // Refresh failed — clear everything and force re-login
         processQueue(refreshError, null);
         localStorage.removeItem("token");
-        window.location.href = "/login";
+        delete api.defaults.headers.common.Authorization;
+        // Use replace so the user can't go "back" to the broken state
+        window.location.replace("/login");
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

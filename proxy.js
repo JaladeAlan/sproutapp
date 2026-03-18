@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 const PUBLIC_ROUTES = [
   "/",
-  "/r",           
+  "/r",
   "/login",
   "/register",
   "/verify-email",
@@ -37,7 +37,7 @@ export function proxy(request) {
     pathname.startsWith(route)
   );
 
-  // ── Not logged in, trying to access protected route ──
+  // ── Not logged in, trying to access a protected route ──
   if (!token && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
@@ -49,7 +49,7 @@ export function proxy(request) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // ── Trying to access admin routes without admin role ──
+  // ── Trying to access admin routes without the admin role ──
   if (isAdminRoute && token && userRole !== "admin") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }

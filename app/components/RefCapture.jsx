@@ -3,11 +3,11 @@
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function RefCapture() {
+export default function RefCapture({ forceCode }) {
   const params = useSearchParams();
 
   useEffect(() => {
-    const code = params.get("ref");
+    const code = forceCode ?? params.get("ref");
     if (!code) return;
 
     const payload = {
@@ -20,7 +20,7 @@ export default function RefCapture() {
     } catch {
       // localStorage unavailable (private browsing edge case) — silently ignore
     }
-  }, [params]);
+  }, [forceCode, params]);
 
   return null;
 }
