@@ -6,14 +6,22 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// Attach JWT token from localStorage on every request
+// Attach JWT token + fix Content-Type for FormData requests
 api.interceptors.request.use((config) => {
+  // Attach token
   if (typeof window !== "undefined") {
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
+
+  // Let the browser set Content-Type automatically for FormData
+  // (it needs to include the multipart boundary — setting it manually breaks file uploads)
+  if (config.data instanceof FormData) {
+    delete config.headers["Content-Type"];
+  }
+
   return config;
 });
 
