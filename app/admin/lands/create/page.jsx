@@ -13,6 +13,22 @@ import dynamic from "next/dynamic";
 
 const PolygonMapEditor = dynamic(() => import("../PolygonMapEditor"), { ssr: false });
 
+function appendGeometry(formData, geometry) {
+  if (!geometry) return;
+
+  if (geometry.type === "Polygon") {
+    formData.append("geometry[type]", "Polygon");
+    geometry.coordinates[0].forEach((point, i) => {
+      formData.append(`geometry[coordinates][0][${i}][0]`, point[0]);
+      formData.append(`geometry[coordinates][0][${i}][1]`, point[1]);
+    });
+  } else if (geometry.type === "Point") {
+    formData.append("geometry[type]", "Point");
+    formData.append("geometry[coordinates][0]", geometry.coordinates[0]); // lng
+    formData.append("geometry[coordinates][1]", geometry.coordinates[1]); // lat
+  }
+}
+
 export default function CreateLand() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -24,12 +40,11 @@ export default function CreateLand() {
     title: "", location: "", size: "",
     price_per_unit_kobo: "", total_units: "",
     lat: "", lng: "", description: "",
-    is_available: true, polygon: null,
+    polygon: null,
   });
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    if (type === "checkbox") { setForm({ ...form, [name]: checked }); return; }
+    const { name, value } = e.target;
     if (["size", "price_per_unit_kobo", "total_units", "lat", "lng"].includes(name)) {
       if (!/^-?\d*\.?\d*$/.test(value)) return;
     }
@@ -73,44 +88,31 @@ export default function CreateLand() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.title || !form.location)    return toast.error("Title and location are required");
-    if (usePolygon && !form.polygon)      return toast.error("Please draw a polygon on the map");
+
+    if (!form.title || !form.location)           return toast.error("Title and location are required");
+    if (usePolygon && !form.polygon)             return toast.error("Please draw a polygon on the map");
     if (!usePolygon && (!form.lat || !form.lng)) return toast.error("Please provide latitude and longitude");
 
     const geometry = buildGeometry();
 
-    const payload = {
-      title:                form.title,
-      location:             form.location,
-      size:                 parseFloat(form.size) || 0,
-      price_per_unit_kobo:  parseInt(form.price_per_unit_kobo) || 0,
-      total_units:          parseInt(form.total_units) || 0,
-      description:          form.description,
-      is_available:         form.is_available ? 1 : 0,
-      geometry,
-    };
+    const formData = new FormData();
+    formData.append("title",               form.title);
+    formData.append("location",            form.location);
+    formData.append("size",                parseFloat(form.size) || 0);
+    formData.append("price_per_unit_kobo", parseInt(form.price_per_unit_kobo) || 0);
+    formData.append("total_units",         parseInt(form.total_units) || 0);
+    formData.append("description",         form.description ?? "");
+    appendGeometry(formData, geometry);
+    images.forEach((img) => formData.append("images[]", img));
 
     try {
       setLoading(true);
-      if (images.length > 0) {
-        const formData = new FormData();
-        Object.entries(payload).forEach(([key, value]) => {
-          if (key === "geometry") {
-            formData.append("geometry", JSON.stringify(value));
-          } else {
-            formData.append(key, value ?? "");
-          }
-        });
-        images.forEach((img) => formData.append("images[]", img));
-        await api.post("/admin/lands", formData);
-      } else {
-        await api.post("/admin/lands", payload);
-      }
+      await api.post("/admin/lands", formData);
       toast.success("Land created successfully");
       router.push("/admin/lands");
     } catch (err) {
       if (err.response?.data?.errors) {
-        Object.values(err.response.data.errors).flat().forEach((e) => toast.error(e));
+        Object.values(err.response.data.errors).flat().forEach((msg) => toast.error(msg));
       } else {
         toast.error(err.response?.data?.message || "Failed to create land");
       }
@@ -173,13 +175,6 @@ export default function CreateLand() {
               <FormField label="Size (sqm)">
                 <DarkInput name="size" value={form.size} onChange={handleChange} placeholder="e.g. 500" required />
               </FormField>
-            </div>
-            <div className="flex items-center gap-3 mt-1">
-              <button type="button" onClick={() => setForm({ ...form, is_available: !form.is_available })}
-                className={`relative w-11 h-6 rounded-full transition-all ${form.is_available ? "bg-emerald-500" : "bg-white/10"}`}>
-                <span className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${form.is_available ? "left-6" : "left-1"}`} />
-              </button>
-              <span className="text-sm text-white/60">{form.is_available ? "Available for purchase" : "Not available"}</span>
             </div>
           </FormSection>
 

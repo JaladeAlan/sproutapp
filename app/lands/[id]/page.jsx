@@ -7,7 +7,7 @@ import api from "../../../utils/api";
 import { purchaseLand, sellLand, getUserUnitsForLand } from "../../../services/landService";
 import { getLandImage, getLandSlides } from "../../../utils/images";
 import { koboToNaira, formatNaira } from "../../../utils/currency";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 import { ArrowLeft, MapPin, Layers, TrendingUp, ShieldCheck, Lock, X, AlertCircle, Info } from "lucide-react";
 
 import Lightbox from "yet-another-react-lightbox";
@@ -34,7 +34,6 @@ function StatCard({ label, value, accent }) {
   );
 }
 
-// KYC status banner shown at top of page
 function KycBanner({ kycStatus }) {
   if (kycStatus === "approved" || !kycStatus) return null;
 
@@ -80,7 +79,6 @@ export default function LandDetails() {
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState("");
 
-  // Account status
   const [pinIsSet, setPinIsSet]   = useState(true);
   const [kycStatus, setKycStatus] = useState("approved");
   const [statusLoaded, setStatusLoaded] = useState(false);
@@ -91,10 +89,8 @@ export default function LandDetails() {
   const [modalError, setModalError]         = useState(null);
   const [modalLoading, setModalLoading]     = useState(false);
 
-  // PIN-not-set modal
-  const [showPinModal, setShowPinModal]   = useState(false);
-  // KYC blocker modal
-  const [showKycModal, setShowKycModal]   = useState(false);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [showKycModal, setShowKycModal] = useState(false);
 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [photoIndex, setPhotoIndex]     = useState(0);
@@ -117,7 +113,6 @@ export default function LandDetails() {
     } catch {}
   }, [id]);
 
-  // Fetch account status (PIN + KYC) in one call
   const fetchAccountStatus = useCallback(async () => {
     try {
       const res = await api.get("/user/account-status");
@@ -125,7 +120,6 @@ export default function LandDetails() {
       setPinIsSet(!!d.pin_is_set);
       setKycStatus(d.kyc_status ?? "none");
     } catch {
-      // Fallback to /me
       try {
         const res = await api.get("/me");
         const u = res.data?.data ?? {};
@@ -144,15 +138,8 @@ export default function LandDetails() {
   }, [fetchLand, fetchUserUnits, fetchAccountStatus]);
 
   const openModal = (type) => {
-    if (kycStatus !== "approved") {
-      setShowKycModal(true);
-      return;
-    }
-    // Check PIN
-    if (!pinIsSet) {
-      setShowPinModal(true);
-      return;
-    }
+    if (kycStatus !== "approved") { setShowKycModal(true); return; }
+    if (!pinIsSet) { setShowPinModal(true); return; }
     setModalType(type);
   };
 
@@ -220,29 +207,20 @@ export default function LandDetails() {
 
   const priceKobo = getLandPrice(land);
   const totalKobo = unitsInput ? Number(unitsInput) * priceKobo : 0;
-
-  const slides = getLandSlides(land);
-
-  const canTransact = statusLoaded && pinIsSet && kycStatus === "approved";
+  const slides    = getLandSlides(land);
 
   return (
     <div className="min-h-screen bg-[#0D1F1A] relative" style={{ fontFamily: "'DM Sans', 'Helvetica Neue', sans-serif" }}>
       <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0"
         style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
 
-      <Toaster position="top-right" toastOptions={{
-        success: { style: { background: "#0D1F1A", color: "#6ee7b7", border: "1px solid #065f46" } },
-        error:   { style: { background: "#0D1F1A", color: "#fca5a5", border: "1px solid #7f1d1d" } },
-      }} />
-
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-10">
         <Link href="/lands" className="inline-flex items-center gap-1.5 text-xs text-white/30 hover:text-white/60 transition-colors mb-8">
           <ArrowLeft size={13} /> Back to Lands
         </Link>
 
-        {/* Image gallery — reads image_url from API */}
         {slides.length > 0 && (
-         <div className={`grid gap-3 mb-10 rounded-2xl overflow-hidden border border-white/10 ${
+          <div className={`grid gap-3 mb-10 rounded-2xl overflow-hidden border border-white/10 ${
             slides.length >= 3 ? "grid-cols-2" : "grid-cols-1"
           }`}>
             {slides.map((slide, i) => (
@@ -290,10 +268,8 @@ export default function LandDetails() {
           <StatCard label="Total Units"  value={land.total_units?.toLocaleString() ?? "—"} />
         </div>
 
-        {/* KYC banner */}
         {statusLoaded && <KycBanner kycStatus={kycStatus} />}
 
-        {/* PIN banner */}
         {statusLoaded && !pinIsSet && kycStatus === "approved" && (
           <div className="mb-8 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0 mt-0.5">
@@ -313,7 +289,6 @@ export default function LandDetails() {
           </div>
         )}
 
-        {/* Holdings */}
         {userUnits > 0 && (
           <div className="mb-8 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
@@ -342,7 +317,6 @@ export default function LandDetails() {
           </div>
         )}
 
-        {/* CTA buttons */}
         <div className="flex flex-wrap gap-3">
           <button onClick={() => openModal("purchase")}
             className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-bold text-[#0D1F1A] transition-all hover:scale-[1.02] active:scale-[0.98]"
@@ -358,7 +332,6 @@ export default function LandDetails() {
         </div>
       </div>
 
-      {/* Lightbox */}
       {lightboxOpen && (
         <Lightbox open={lightboxOpen} close={() => setLightboxOpen(false)}
           index={photoIndex} slides={slides}
@@ -457,7 +430,7 @@ export default function LandDetails() {
               <div className="space-y-3">
                 <Link href="/settings?tab=pin"
                   className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-bold text-[#0D1F1A] transition-all hover:scale-[1.02] active:scale-[0.98]"
-                  style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}>
+                  style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}>
                   <ShieldCheck size={15} /> Go to Settings
                 </Link>
                 <button onClick={() => setShowPinModal(false)}
