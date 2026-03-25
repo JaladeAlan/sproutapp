@@ -4,9 +4,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import api from "../../../utils/api";
-import { sellLand, getUserUnitsForLand } from "../../../services/landService";
-import { getLandImage, getLandSlides } from "../../../utils/images";
-import { koboToNaira, formatNaira } from "../../../utils/currency";
+import { getLandSlides } from "../../../utils/images";
+import { formatNaira } from "../../../utils/currency";
 import toast from "react-hot-toast";
 import {
   ArrowLeft, MapPin, Layers, TrendingUp, ShieldCheck,
@@ -72,7 +71,6 @@ function KycBanner({ kycStatus }) {
   );
 }
 
-// Thin breakdown row used inside the modal cost summary
 function BreakdownRow({ label, value, highlight, strikethrough, green, muted }) {
   return (
     <div className="flex justify-between items-center py-1">
@@ -83,6 +81,115 @@ function BreakdownRow({ label, value, highlight, strikethrough, green, muted }) 
         highlight     ? "text-amber-400" :
         "text-white"
       }`}>{value}</span>
+    </div>
+  );
+}
+
+function SlideTile({ slide, index, label, style, className = "", onClick, overlayCount }) {
+  return (
+    <div
+      className={`relative overflow-hidden group cursor-pointer ${className}`}
+      style={style}
+      onClick={onClick}
+    >
+      <img
+        src={slide.src}
+        alt={label}
+        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+        onError={(e) => {
+          if (!e.target.dataset.errored) {
+            e.target.dataset.errored = "1";
+            e.target.src = "/no-image.jpeg";
+          }
+        }}
+      />
+      {/* "+N more" overlay on last visible tile */}
+      {overlayCount > 0 ? (
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ background: "rgba(13,31,26,0.70)" }}
+        >
+          <span
+            className="text-white text-2xl font-bold"
+            style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+          >
+            +{overlayCount}
+          </span>
+        </div>
+      ) : (
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3"
+          style={{ background: "linear-gradient(to top, rgba(13,31,26,0.6), transparent)" }}
+        >
+          <span className="text-white/80 text-xs font-bold uppercase tracking-widest">View</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Photo grid ──────────────────────────────────────────────────────────────
+function PhotoGrid({ slides, land, onOpen }) {
+  if (!slides.length) return null;
+
+  const open = (i) => onOpen(i);
+
+  // ── 1 image: full width ──────────────────────────────────────────────────
+  if (slides.length === 1) {
+    return (
+      <div className="rounded-2xl overflow-hidden border border-white/10" style={{ height: 400 }}>
+        <SlideTile slide={slides[0]} index={0} label={`${land.title} 1`}
+          style={{ width: "100%", height: "100%" }} onClick={() => open(0)} />
+      </div>
+    );
+  }
+
+  // ── 2 images: side by side ───────────────────────────────────────────────
+  if (slides.length === 2) {
+    return (
+      <div className="rounded-2xl overflow-hidden border border-white/10"
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 3, height: 380 }}>
+        {slides.map((slide, i) => (
+          <SlideTile key={i} slide={slide} index={i} label={`${land.title} ${i + 1}`}
+            style={{ height: "100%" }} onClick={() => open(i)} />
+        ))}
+      </div>
+    );
+  }
+
+  // ── 3+ images: mosaic — big left, two stacked right ──────────────────────
+  const extraCount = slides.length > 3 ? slides.length - 3 : 0;
+
+  return (
+    <div
+      className="rounded-2xl overflow-hidden border border-white/10"
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gridTemplateRows: "205px 205px",
+        gap: 3,
+        height: 413, // 205 + 3 + 205
+      }}
+    >
+      {/* Large hero tile — spans both rows */}
+      <SlideTile
+        slide={slides[0]} index={0} label={`${land.title} 1`}
+        style={{ gridRow: "1 / 3", height: "100%" }}
+        onClick={() => open(0)}
+      />
+      {/* Top-right */}
+      <SlideTile
+        slide={slides[1]} index={1} label={`${land.title} 2`}
+        style={{ height: "100%" }}
+        onClick={() => open(1)}
+      />
+      {/* Bottom-right — may show "+N" overlay */}
+      <SlideTile
+        slide={slides[2]} index={2} label={`${land.title} 3`}
+        style={{ height: "100%" }}
+        overlayCount={extraCount}
+        onClick={() => open(2)}
+      />
     </div>
   );
 }
@@ -115,7 +222,6 @@ export default function LandDetails() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [photoIndex, setPhotoIndex]     = useState(0);
 
-  // Debounce timer ref for preview fetches
   const previewTimer = useRef(null);
 
   const fetchLand = useCallback(async () => {
@@ -132,16 +238,11 @@ export default function LandDetails() {
   const fetchUserUnits = useCallback(async () => {
     try {
       const res = await api.get(`/lands/${id}/units`);
-      if (res.data?.data?.user_units !== undefined) {
-        setUserUnits(res.data.data.user_units);
-      } else {
-        setUserUnits(0);
-      }
-    } catch (err) {
-      console.error("Failed to fetch user units:", err);
+      setUserUnits(res.data?.data?.user_units ?? 0);
+    } catch {
       setUserUnits(0);
     }
-  }, [id]);;
+  }, [id]);
 
   const fetchAccountStatus = useCallback(async () => {
     try {
@@ -167,15 +268,11 @@ export default function LandDetails() {
     fetchAccountStatus();
   }, [fetchLand, fetchUserUnits, fetchAccountStatus]);
 
-  // ── Fetch purchase preview whenever units or useRewards changes ──────────
+  // ── Purchase preview — debounced ─────────────────────────────────────────
   useEffect(() => {
     if (modalType !== "purchase") return;
-
     const units = Number(unitsInput);
-    if (!units || units <= 0) {
-      setPreview(null);
-      return;
-    }
+    if (!units || units <= 0) { setPreview(null); return; }
 
     clearTimeout(previewTimer.current);
     previewTimer.current = setTimeout(async () => {
@@ -228,15 +325,9 @@ export default function LandDetails() {
           transaction_pin: transactionPin,
         });
         res = response.data;
-        const savings = res.total_discount_kobo ?? 0;
-        const rewardsSavings = res.paid_from_rewards_kobo ?? 0;
+        const savings = (res.total_discount_kobo ?? 0) + (res.paid_from_rewards_kobo ?? 0);
         let msg = `Purchase successful! Ref: ${res.reference}`;
-        if (savings > 0 || rewardsSavings > 0) {
-          const parts = [];
-          if (savings > 0)       parts.push(`₦${(savings / 100).toLocaleString()} discount`);
-          if (rewardsSavings > 0) parts.push(`₦${(rewardsSavings / 100).toLocaleString()} from rewards`);
-          msg += ` · Saved ${parts.join(" + ")}`;
-        }
+        if (savings > 0) msg += ` · Saved ₦${(savings / 100).toLocaleString()}`;
         toast.success(msg);
       } else {
         const response = await api.post(`/lands/${id}/sell`, {
@@ -286,8 +377,7 @@ export default function LandDetails() {
 
   const priceKobo = getLandPrice(land);
   const slides    = getLandSlides(land);
-
-  // For sell modal — simple total (no discounts on sell)
+  const maxUnits  = modalType === "sell" ? userUnits : (land.available_units ?? 0);
   const sellTotal = unitsInput && modalType === "sell" ? Number(unitsInput) * priceKobo : 0;
 
   return (
@@ -300,22 +390,14 @@ export default function LandDetails() {
           <ArrowLeft size={13} /> Back to Lands
         </Link>
 
+        {/* ── Photo grid ─────────────────────────────────────────────────── */}
         {slides.length > 0 && (
-          <div className={`grid gap-3 mb-10 rounded-2xl overflow-hidden border border-white/10 ${slides.length >= 3 ? "grid-cols-2" : "grid-cols-1"}`}>
-            {slides.map((slide, i) => (
-              <div key={i}
-                className={`relative overflow-hidden group cursor-pointer ${i === 0 && slides.length >= 3 ? "row-span-2" : ""}`}
-                style={{ height: i === 0 && slides.length >= 3 ? "420px" : "300px" }}
-                onClick={() => { setPhotoIndex(i); setLightboxOpen(true); }}>
-                <img src={slide.src} alt={`${land.title} ${i + 1}`}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  onError={(e) => { if (!e.target.dataset.errored) { e.target.dataset.errored = "1"; e.target.src = "/no-image.jpeg"; } }} />
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4"
-                  style={{ background: "linear-gradient(to top, rgba(13,31,26,0.6), transparent)" }}>
-                  <span className="text-white/80 text-xs font-bold uppercase tracking-widest">View</span>
-                </div>
-              </div>
-            ))}
+          <div className="mb-10">
+            <PhotoGrid
+              slides={slides}
+              land={land}
+              onOpen={(i) => { setPhotoIndex(i); setLightboxOpen(true); }}
+            />
           </div>
         )}
 
@@ -410,7 +492,6 @@ export default function LandDetails() {
           <div className="relative w-full max-w-md rounded-2xl border border-white/10 overflow-hidden"
             style={{ background: "#0D1F1A", boxShadow: "0 25px 80px rgba(0,0,0,0.6)" }}>
 
-            {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-0.5">
@@ -427,56 +508,55 @@ export default function LandDetails() {
             </div>
 
             <div className="p-6 space-y-4">
-              {/* Units input */}
+              {/* Units input with stepper */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">
                   Number of Units
+                  {maxUnits > 0 && (
+                    <span className="ml-2 normal-case text-white/20 font-normal">
+                      (max {maxUnits} · double-click to fill)
+                    </span>
+                  )}
                 </label>
-                <div className="flex gap-2">
-                  {/* Stepper buttons */}
-                  <button
-                    type="button"
-                    onClick={() => setUnitsInput((v) => Math.max(1, Number(v || 1) - 1))}
-                    className="px-3 py-2 rounded-xl bg-white/5 text-white/60 hover:bg-white/10 transition-all"
-                  >
+                <div className="flex items-center gap-2">
+                  <button type="button"
+                    onClick={() => setUnitsInput((v) => String(Math.max(1, Number(v || 1) - 1)))}
+                    disabled={!unitsInput || Number(unitsInput) <= 1}
+                    className="w-10 h-10 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-lg font-bold">
                     −
                   </button>
-                  
                   <input
-                    type="number"
-                    min={1}
+                    type="number" min={1} max={maxUnits || undefined}
                     value={unitsInput}
                     onChange={(e) => {
-                      let value = e.target.value.replace(/\D/g, "");
-                      if (!value) return setUnitsInput("");
-                      let num = Number(value);
-                      const maxUnits = modalType === "sell" ? userUnits : land.available_units;
-                      if (num > maxUnits) num = maxUnits;
-                      setUnitsInput(num);
+                      const raw = e.target.value;
+                      if (raw === "") return setUnitsInput("");
+                      const n = Math.floor(Number(raw));
+                      if (isNaN(n) || n < 0) return;
+                      setUnitsInput(String(Math.min(n, maxUnits || n)));
                     }}
-                    onDoubleClick={() => {
-                      // Fill max on double click
-                      const maxUnits = modalType === "sell" ? userUnits : land.available_units;
-                      setUnitsInput(maxUnits);
+                    onBlur={(e) => {
+                      const n = Math.floor(Number(e.target.value));
+                      if (!isNaN(n) && n > 0) setUnitsInput(String(Math.min(Math.max(1, n), maxUnits)));
                     }}
-                    className="flex-1 bg-[#0D1F1A]/50 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white px-4 py-3 rounded-xl text-center text-sm outline-none transition-all"
-                    placeholder={`Max: ${modalType === "sell" ? userUnits : land.available_units}`}
+                    onDoubleClick={() => { if (maxUnits > 0) setUnitsInput(String(maxUnits)); }}
+                    className="flex-1 bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-2.5 rounded-xl text-sm outline-none transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="0"
                   />
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const maxUnits = modalType === "sell" ? userUnits : land.available_units;
-                      setUnitsInput((v) => Math.min(maxUnits, Number(v || 0) + 1));
-                    }}
-                    className="px-3 py-2 rounded-xl bg-white/5 text-white/60 hover:bg-white/10 transition-all"
-                  >
+                  <button type="button"
+                    onClick={() => setUnitsInput((v) => String(Math.min(maxUnits, Number(v || 0) + 1)))}
+                    disabled={maxUnits > 0 && Number(unitsInput) >= maxUnits}
+                    className="w-10 h-10 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all text-lg font-bold">
                     +
                   </button>
                 </div>
-                <p className="text-xs text-white/40 mt-1">
-                  Max units: {modalType === "sell" ? userUnits : land.available_units}
-                </p>
+                {maxUnits > 0 && (
+                  <p className="text-xs text-white/25 mt-1.5 pl-1">
+                    {modalType === "sell"
+                      ? `${userUnits} unit${userUnits !== 1 ? "s" : ""} owned`
+                      : `${land.available_units} unit${land.available_units !== 1 ? "s" : ""} available`}
+                  </p>
+                )}
               </div>
 
               {/* Rewards toggle — purchase only */}
@@ -486,16 +566,10 @@ export default function LandDetails() {
                     <Wallet size={14} className="text-amber-400/70" />
                     <span className="text-sm text-white/70 font-medium">Use rewards &amp; discounts</span>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setUseRewards((v) => !v)}
-                    className="transition-colors"
-                    aria-label="Toggle rewards"
-                  >
+                  <button type="button" onClick={() => setUseRewards((v) => !v)} className="transition-colors" aria-label="Toggle rewards">
                     {useRewards
                       ? <ToggleRight size={26} className="text-amber-400" />
-                      : <ToggleLeft  size={26} className="text-white/20"  />
-                    }
+                      : <ToggleLeft  size={26} className="text-white/20"  />}
                   </button>
                 </div>
               )}
@@ -510,44 +584,27 @@ export default function LandDetails() {
                     </div>
                   ) : preview ? (
                     <>
-                      {/* Discount badge */}
                       {preview.discount_label && (
                         <div className="flex items-center gap-1.5 mb-3">
                           <Tag size={11} className="text-emerald-400" />
                           <span className="text-xs font-bold text-emerald-400">{preview.discount_label}</span>
                         </div>
                       )}
-
-                      <BreakdownRow
-                        label="Original cost"
+                      <BreakdownRow label="Original cost"
                         value={`₦${preview.original_cost_naira.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`}
-                        strikethrough={preview.total_discount_kobo > 0}
-                      />
-
+                        strikethrough={preview.total_discount_kobo > 0} />
                       {preview.first_purchase_discount_kobo > 0 && (
-                        <BreakdownRow
-                          label={`First-purchase discount`}
-                          value={`-₦${preview.first_purchase_discount_naira.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`}
-                          green
-                        />
+                        <BreakdownRow label="First-purchase discount"
+                          value={`-₦${preview.first_purchase_discount_naira.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`} green />
                       )}
-
                       {preview.referral_discount_kobo > 0 && (
-                        <BreakdownRow
-                          label="Referral discount"
-                          value={`-₦${preview.referral_discount_naira.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`}
-                          green
-                        />
+                        <BreakdownRow label="Referral discount"
+                          value={`-₦${preview.referral_discount_naira.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`} green />
                       )}
-
                       {preview.paid_from_rewards_kobo > 0 && (
-                        <BreakdownRow
-                          label="From rewards balance"
-                          value={`-₦${preview.paid_from_rewards_naira.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`}
-                          green
-                        />
+                        <BreakdownRow label="From rewards balance"
+                          value={`-₦${preview.paid_from_rewards_naira.toLocaleString("en-NG", { minimumFractionDigits: 2 })}`} green />
                       )}
-
                       <div className="border-t border-white/10 mt-2 pt-2">
                         <div className="flex justify-between items-center">
                           <span className="text-xs font-bold uppercase tracking-wider text-white/50">You pay</span>
@@ -563,7 +620,6 @@ export default function LandDetails() {
                       </div>
                     </>
                   ) : (
-                    // Fallback while preview hasn't loaded yet
                     <>
                       <p className="text-xs text-amber-500/70 uppercase tracking-widest mb-1">Total to Pay</p>
                       <p className="text-2xl font-bold text-amber-400" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
@@ -591,8 +647,7 @@ export default function LandDetails() {
                   value={transactionPin}
                   onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                   className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-3 rounded-xl text-center text-2xl tracking-[0.5em] outline-none transition-all"
-                  placeholder="••••"
-                />
+                  placeholder="••••" />
               </div>
 
               {modalError && (
@@ -608,8 +663,10 @@ export default function LandDetails() {
                 </button>
                 <button onClick={handleAction}
                   disabled={
-                    modalLoading || !unitsInput || !transactionPin ||
-                    (modalType === "purchase" && preview && !preview.sufficient_balance)
+                    modalLoading || !unitsInput || Number(unitsInput) <= 0 || !transactionPin ||
+                    (modalType === "purchase" && preview && !preview.sufficient_balance) ||
+                    (modalType === "sell"     && Number(unitsInput) > userUnits)          ||
+                    (modalType === "purchase" && Number(unitsInput) > (land.available_units ?? 0))
                   }
                   className="flex-1 py-3 rounded-xl font-bold text-[#0D1F1A] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}>
@@ -626,7 +683,7 @@ export default function LandDetails() {
         </div>
       )}
 
-      {/* ── PIN not set modal ───────────────────────────────────────────────── */}
+      {/* ── PIN not set modal ─────────────────────────────────────────────── */}
       {showPinModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="relative w-full max-w-sm rounded-2xl border border-white/10 overflow-hidden"
@@ -658,7 +715,7 @@ export default function LandDetails() {
         </div>
       )}
 
-      {/* ── KYC blocker modal ───────────────────────────────────────────────── */}
+      {/* ── KYC blocker modal ─────────────────────────────────────────────── */}
       {showKycModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="relative w-full max-w-sm rounded-2xl border border-white/10 overflow-hidden"

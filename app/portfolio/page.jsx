@@ -10,6 +10,7 @@ import {
   TrendingUp, TrendingDown, Layers,
   ChevronLeft, ChevronRight, X, Tag,
   Wallet, ToggleLeft, ToggleRight, AlertCircle,
+  Plus, Minus,
 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
@@ -34,26 +35,31 @@ function BreakdownRow({ label, value, green, strikethrough, muted }) {
 }
 
 export default function Portfolio() {
-  const [lands, setLands]             = useState([]);
+  const [lands, setLands]               = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [hasPin, setHasPin]           = useState(false);
-  const [summary, setSummary]         = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [loading, setLoading]           = useState(true);
+  const [hasPin, setHasPin]             = useState(false);
+  const [summary, setSummary]           = useState(null);
+  const [currentPage, setCurrentPage]   = useState(1);
 
-  const [modal, setModal] = useState({
+  const MODAL_DEFAULTS = {
     type: null, land: null, units: "", pin: "",
     useRewards: true, processing: false,
-    availableUnits: 0, 
+    availableUnits: 0,
     userUnits: 0,
-  });
+  };
 
+  const [modal, setModal]   = useState(MODAL_DEFAULTS);
   const [preview, setPreview]               = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const previewTimer                        = useRef(null);
 
   const router = useRouter();
 
+  // ── Derived caps ───────────────────────────────────────────────────────────
+  const maxUnits = modal.type === "sell" ? modal.userUnits : modal.availableUnits;
+
+  // ── Data fetching ──────────────────────────────────────────────────────────
   const fetchPortfolioAndUser = useCallback(async () => {
     try {
       const userRes = await api.get("/me");
@@ -135,6 +141,7 @@ export default function Portfolio() {
     return () => clearTimeout(previewTimer.current);
   }, [modal.units, modal.useRewards, modal.type, modal.land]);
 
+  // ── Pagination ─────────────────────────────────────────────────────────────
   const totalPages  = Math.ceil(transactions.length / ITEMS_PER_PAGE);
   const paginatedTx = useMemo(() => {
     const start = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -148,6 +155,7 @@ export default function Portfolio() {
     if (safePage !== currentPage) setCurrentPage(safePage);
   }, [safePage, currentPage]);
 
+  // ── Modal helpers ──────────────────────────────────────────────────────────
   const openModal = async (type, land) => {
     if (!hasPin) {
       toast.error("Please set a transaction PIN first");
@@ -155,41 +163,71 @@ export default function Portfolio() {
       return;
     }
 
-    let userUnits = 0;
+    let userUnits      = 0;
     let availableUnits = land.available_units ?? 0;
 
     if (type === "sell") {
       userUnits = land.units_owned ?? 0;
     } else {
-      // Fetch latest available units for buy
       try {
-        const res = await api.get(`/lands/${land.land_id}/units`);
+        const res  = await api.get(`/lands/${land.land_id}/units`);
         availableUnits = res.data.data.available_units ?? 0;
-        userUnits      = res.data.data.user_units ?? 0;
+        userUnits      = res.data.data.user_units      ?? 0;
       } catch {
         toast.error("Failed to fetch land units");
+        return;
       }
     }
 
     setPreview(null);
-    setModal({ type, land, units: "", pin: "", useRewards: true, processing: false, availableUnits, userUnits,});
+    setModal({
+      ...MODAL_DEFAULTS,
+      type, land,
+      availableUnits,
+      userUnits,
+    });
   };
 
+  // ── FIX: closeModal no longer references stale bare variables ─────────────
   const closeModal = () => {
     setPreview(null);
-    setModal({ type: null, land: null, units: "", pin: "", useRewards: true, processing: false, availableUnits, userUnits, });
+    setModal(MODAL_DEFAULTS);
   };
 
-   const handleTransaction = async (e) => {
+  // ── Stepper helpers ────────────────────────────────────────────────────────
+  const setUnits = (val) => {
+    const clamped = Math.min(Math.max(1, Math.floor(Number(val))), maxUnits);
+    setModal((p) => ({ ...p, units: String(clamped) }));
+  };
+
+  const stepDown = () => {
+    const cur = Number(modal.units) || 0;
+    if (cur <= 1) return;
+    setModal((p) => ({ ...p, units: String(cur - 1) }));
+  };
+
+  const stepUp = () => {
+    const cur = Number(modal.units) || 0;
+    if (cur >= maxUnits) return;
+    setModal((p) => ({ ...p, units: String(cur + 1) }));
+  };
+
+  // Double-click autofill max
+  const handleInputDblClick = () => {
+    if (maxUnits > 0) setModal((p) => ({ ...p, units: String(maxUnits) }));
+  };
+
+  // ── Transaction submit ─────────────────────────────────────────────────────
+  const handleTransaction = async (e) => {
     e.preventDefault();
     const units = Number(modal.units);
 
     if (!Number.isInteger(units) || units <= 0)
       return toast.error("Units must be a whole number greater than 0");
     if (modal.type === "sell" && units > modal.userUnits)
-      return toast.error("Cannot sell more than owned");
+      return toast.error(`Cannot sell more than ${modal.userUnits} owned unit${modal.userUnits !== 1 ? "s" : ""}`);
     if (modal.type === "buy" && units > modal.availableUnits)
-      return toast.error("Cannot buy more than available");
+      return toast.error(`Cannot buy more than ${modal.availableUnits} available unit${modal.availableUnits !== 1 ? "s" : ""}`);
     if (modal.pin.length !== 4)
       return toast.error("Enter 4-digit PIN");
 
@@ -197,13 +235,13 @@ export default function Portfolio() {
 
     try {
       if (modal.type === "buy") {
-        const res = await api.post(`/lands/${modal.land.land_id}/purchase`, {
+        const res     = await api.post(`/lands/${modal.land.land_id}/purchase`, {
           units,
           use_rewards:     modal.useRewards,
           transaction_pin: modal.pin,
         });
-        const d        = res.data;
-        const savings  = (d.total_discount_kobo ?? 0) + (d.paid_from_rewards_kobo ?? 0);
+        const d       = res.data;
+        const savings = (d.total_discount_kobo ?? 0) + (d.paid_from_rewards_kobo ?? 0);
         let msg = "Purchase successful";
         if (savings > 0) msg += ` · Saved ₦${(savings / 100).toLocaleString()}`;
         toast.success(msg);
@@ -230,7 +268,7 @@ export default function Portfolio() {
     }
   };
 
-  // ── Sell-side total only (no discount)
+  // ── Sell-side total (no discount) ──────────────────────────────────────────
   const sellTotal = useMemo(() => {
     if (modal.type !== "sell" || !modal.land || !modal.units) return 0;
     const units = parseFloat(modal.units);
@@ -241,6 +279,7 @@ export default function Portfolio() {
   const formatDate = (d) =>
     new Date(d).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" });
 
+  // ── Loading screen ─────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0D1F1A]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -422,21 +461,77 @@ export default function Portfolio() {
             </div>
 
             <form onSubmit={handleTransaction} className="p-6 space-y-4">
-              {/* Units */}
+
+              {/* ── Units input with stepper ───────────────────────────────── */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">
                   Number of Units
-                  {modal.type === "sell" && modal.land && (
-                    <span className="ml-2 normal-case text-white/20 font-normal">(max {modal.land.units_owned})</span>
+                  {maxUnits > 0 && (
+                    <span className="ml-2 normal-case text-white/20 font-normal">
+                      (max {maxUnits} · double-click to fill)
+                    </span>
                   )}
                 </label>
-                <input type="number" min={1}
-                  max={modal.type === "sell" ? modal.land?.units_owned : undefined}
-                  value={modal.units}
-                  onChange={(e) => setModal((p) => ({ ...p, units: e.target.value }))}
-                  className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-3 rounded-xl text-sm outline-none transition-all"
-                  placeholder="Enter units"
-                />
+                <div className="flex items-center gap-2">
+                  {/* − button */}
+                  <button
+                    type="button"
+                    onClick={stepDown}
+                    disabled={!modal.units || Number(modal.units) <= 1}
+                    className="w-10 h-10 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    aria-label="Decrease units"
+                  >
+                    <Minus size={14} />
+                  </button>
+
+                  {/* Number input */}
+                  <input
+                    type="number"
+                    min={1}
+                    max={maxUnits || undefined}
+                    value={modal.units}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      // Allow empty string while typing
+                      if (raw === "") {
+                        setModal((p) => ({ ...p, units: "" }));
+                        return;
+                      }
+                      const n = Math.floor(Number(raw));
+                      if (isNaN(n) || n < 0) return;
+                      // Clamp to max without blocking typing when not yet exceeding
+                      setModal((p) => ({ ...p, units: String(Math.min(n, maxUnits || n)) }));
+                    }}
+                    onBlur={(e) => {
+                      // Clamp on blur
+                      const n = Math.floor(Number(e.target.value));
+                      if (!isNaN(n) && n > 0) setUnits(n);
+                    }}
+                    onDoubleClick={handleInputDblClick}
+                    className="flex-1 bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-2.5 rounded-xl text-sm outline-none transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="0"
+                  />
+
+                  {/* + button */}
+                  <button
+                    type="button"
+                    onClick={stepUp}
+                    disabled={maxUnits > 0 && Number(modal.units) >= maxUnits}
+                    className="w-10 h-10 shrink-0 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                    aria-label="Increase units"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+
+                {/* Available/owned availability hint */}
+                {maxUnits > 0 && (
+                  <p className="text-xs text-white/25 mt-1.5 pl-1">
+                    {modal.type === "sell"
+                      ? `${modal.userUnits} unit${modal.userUnits !== 1 ? "s" : ""} owned`
+                      : `${modal.availableUnits} unit${modal.availableUnits !== 1 ? "s" : ""} available`}
+                  </p>
+                )}
               </div>
 
               {/* Rewards toggle — buy only */}
@@ -536,7 +631,10 @@ export default function Portfolio() {
               {/* PIN */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-widest text-white/30 mb-2">Transaction PIN</label>
-                <input type="password" inputMode="numeric" maxLength={4}
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
                   value={modal.pin}
                   onChange={(e) => setModal((p) => ({ ...p, pin: e.target.value.replace(/\D/g, "").slice(0, 4) }))}
                   className="w-full bg-white/5 border border-white/10 hover:border-white/20 focus:border-amber-500/50 focus:ring-2 focus:ring-amber-500/20 text-white placeholder-white/20 px-4 py-3 rounded-xl text-center text-2xl tracking-[0.5em] outline-none transition-all"
@@ -549,10 +647,16 @@ export default function Portfolio() {
                   className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 text-sm font-semibold transition-all">
                   Cancel
                 </button>
-                <button type="submit"
+                <button
+                  type="submit"
                   disabled={
-                    modal.processing || !modal.units || !modal.pin ||
-                    (modal.type === "buy" && preview && !preview.sufficient_balance)
+                    modal.processing ||
+                    !modal.units ||
+                    Number(modal.units) <= 0 ||
+                    !modal.pin ||
+                    (modal.type === "buy"  && Number(modal.units) > modal.availableUnits) ||
+                    (modal.type === "sell" && Number(modal.units) > modal.userUnits)      ||
+                    (modal.type === "buy"  && preview && !preview.sufficient_balance)
                   }
                   className="flex-1 py-3 rounded-xl font-bold text-[#0D1F1A] transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:scale-100"
                   style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}>
