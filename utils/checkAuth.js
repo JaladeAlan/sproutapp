@@ -1,25 +1,15 @@
-import axios from "axios";
+import { getToken } from "./tokenStore";
+import api from "./api";
 
 export async function checkAuth() {
   if (typeof window === "undefined") return false;
-
-  const token = localStorage.getItem("token");
+  const token = getToken();
   if (!token) return false;
 
   try {
-    const baseURL = process.env.NEXT_PUBLIC_API_URL || "https://sprout-bjdt.onrender.com//api";
-
-    const response = await axios.get(`${baseURL}/me`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      },
-    });
-
-    return response.status === 200;
-  } catch (error) {
-    console.error("Token check failed:", error);
-    localStorage.removeItem("token");
+    const res = await api.get("/me");
+    return res.status === 200;
+  } catch {
     return false;
   }
 }

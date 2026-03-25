@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
 
-// ─── Routes config ────────────────────────────────────────────────────────────
-
 const PUBLIC_ROUTES = [
   "/",
   "/r",
@@ -19,8 +17,6 @@ const PUBLIC_ROUTES = [
 
 const ADMIN_ROUTES = ["/admin"];
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
-
 export function proxy(request) {
   const { pathname } = request.nextUrl;
 
@@ -37,19 +33,19 @@ export function proxy(request) {
     pathname.startsWith(route)
   );
 
-  // ── Not logged in, trying to access a protected route ──
+  // Logged-in user hitting "/" or auth pages → dashboard
+  if (token && (pathname === "/" || pathname === "/login" || pathname === "/register")) {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  // Not logged in, trying to access a protected route
   if (!token && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  // ── Logged in, trying to access auth pages ──
-  if (token && (pathname === "/login" || pathname === "/register")) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // ── Trying to access admin routes without the admin role ──
+  // Admin route without admin role
   if (isAdminRoute && token && userRole !== "admin") {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
