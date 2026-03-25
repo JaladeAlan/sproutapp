@@ -403,7 +403,7 @@ export default function Portfolio() {
                         </div>
                         <div className="text-right">
                           <p className={`font-bold text-sm ${isPurchase ? "text-emerald-400" : "text-red-400"}`}>
-                            {isPurchase ? "-" : "+"}₦{formatNaira(t.amount)}
+                           ₦{formatNaira(t.amount)}
                           </p>
                           <p className="text-xs text-white/30">{t.status}</p>
                         </div>
