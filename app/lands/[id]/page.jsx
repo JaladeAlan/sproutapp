@@ -310,7 +310,7 @@ export default function LandDetails() {
           transaction_pin: transactionPin,
         });
         res = response.data;
-        toast.success(`Sold successfully! Ref: ${res.reference}`);
+        toast.success(`Transaction Successful`);
       }
       await fetchLand();
       await fetchUserUnits();

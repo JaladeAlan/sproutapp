@@ -114,18 +114,24 @@ export default function Dashboard() {
   const { user, loading: loadingUser } = useAuth();
   const router = useRouter();
 
-  const [mounted, setMounted]         = useState(false);
-  const [hasToken, setHasToken]       = useState(false);
+  const [mounted, setMounted]           = useState(false);
+  const [hasToken, setHasToken]         = useState(false);
   const [authTimedOut, setAuthTimedOut] = useState(false);
 
   useEffect(() => {
     setHasToken(!!localStorage.getItem("token"));
     requestAnimationFrame(() => setMounted(true));
 
-    // Match the axios timeout in utils/api.js (10 000 ms) plus a small buffer.
     const timer = setTimeout(() => setAuthTimedOut(true), 12000);
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const resolved = !loadingUser || authTimedOut;
+    if (resolved && !user) {
+      router.replace("/login");
+    }
+  }, [loadingUser, user, router, authTimedOut]);
 
   const { stats, transactions, loadingStats, loadingTx, refetch } =
     useDashboardData(!!user && hasToken);
@@ -139,35 +145,21 @@ export default function Dashboard() {
     }
   }, [user]);
 
-  // Redirect when the user is not authenticated.
-  useEffect(() => {
-    if (!loadingUser && !user) {
-      router.replace("/login");
-      return;
-    }
-    // Safety fallback: auth check has been loading for too long (server unreachable).
-    if (authTimedOut && !user) {
-      router.replace("/login");
-    }
-  }, [loadingUser, user, router, authTimedOut]);
+  // Show spinner while auth state resolves — but stop if timed out.
+  const isAuthing = (loadingUser || !user) && !authTimedOut;
 
-  // Show spinner while auth state resolves.
-  if (loadingUser || !user) {
+  if (isAuthing) {
     return (
       <div className="min-h-screen bg-[#0D1F1A] flex flex-col items-center justify-center gap-4">
         <div className="relative w-12 h-12">
           <div className="absolute inset-0 w-12 h-12 border-2 border-amber-500/15 rounded-full" />
           <div className="absolute inset-0 w-12 h-12 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
         </div>
-        {/* After 6 seconds show a hint so users aren't confused */}
-        {authTimedOut && (
-          <p className="text-white/30 text-xs animate-pulse">
-            Having trouble connecting — redirecting you…
-          </p>
-        )}
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div
