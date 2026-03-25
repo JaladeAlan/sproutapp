@@ -301,7 +301,7 @@ export default function LandDetails() {
         });
         res = response.data;
         const savings = (res.total_discount_kobo ?? 0) + (res.paid_from_rewards_kobo ?? 0);
-        let msg = `Purchase successful! Ref: ${res.reference}`;
+        let msg = `Purchase successful`;
         if (savings > 0) msg += ` · Saved ₦${(savings / 100).toLocaleString()}`;
         toast.success(msg);
       } else {
