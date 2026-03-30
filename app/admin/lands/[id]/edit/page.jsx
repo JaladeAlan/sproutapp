@@ -47,9 +47,33 @@ function arrayField(land, key) {
 }
 
 /**
+ * Extract a GeoJSON Polygon from the API response.
+ *
+ * Priority:
+ *  1. land.geometry_geojson  — the ST_AsGeoJSON() appended accessor (object)
+ *  2. land.geometry          — some endpoints return this as an object/string
+ *
+ * land.coordinates is intentionally SKIPPED — it contains raw WKB hex which
+ * cannot be JSON-parsed and is meaningless on the frontend.
+ */
+function extractPolygon(land) {
+  const candidates = [land.geometry_geojson, land.geometry];
+  for (const geo of candidates) {
+    if (!geo) continue;
+    try {
+      const parsed = typeof geo === "string" ? JSON.parse(geo) : geo;
+      if (parsed?.type === "Polygon") return parsed;
+    } catch {
+      // not valid JSON / not a polygon — try next candidate
+    }
+  }
+  return null;
+}
+
+/**
  * Build a FormData from a flat payload object.
- * - geometry        → JSON.stringify
- * - array fields    → JSON.stringify  (controller runs decodeJsonStrings on them)
+ * - geometry     → JSON.stringify
+ * - array fields → JSON.stringify  (controller runs decodeJsonStrings on them)
  * - everything else → string / ""
  */
 function buildFormData(payload, newImages = [], removeImages = []) {
@@ -240,14 +264,9 @@ export default function EditLand() {
         const res  = await api.get(`/admin/lands/${id}`);
         const land = res.data.data;
 
-        let polygon = null;
-        const geo = land.geometry ?? land.coordinates;
-        if (geo) {
-          try {
-            polygon = typeof geo === "string" ? JSON.parse(geo) : geo;
-            if (polygon?.type !== "Polygon") polygon = null;
-          } catch { polygon = null; }
-        }
+        // geometry_geojson is the ST_AsGeoJSON() accessor appended by the model.
+        // land.coordinates holds raw WKB hex — unusable on the frontend, ignored.
+        const polygon = extractPolygon(land);
         const hasPolygon = !!polygon;
         setInitialHasPolygon(hasPolygon);
         setUsePolygon(hasPolygon);
@@ -258,6 +277,7 @@ export default function EditLand() {
           description:  land.description  || "",
           size:         land.size?.toString()        || "",
           total_units:  land.total_units?.toString() || "",
+          // Only populate lat/lng when not using polygon
           lat:  hasPolygon ? "" : (land.lat?.toString() || ""),
           lng:  hasPolygon ? "" : (land.lng?.toString() || ""),
           is_available: land.is_available ?? true,
@@ -267,7 +287,7 @@ export default function EditLand() {
         setSoldUnits(land.units_sold ?? (land.total_units - land.available_units));
         setExistingImages(land.images || []);
 
-        // Normalise valuation history
+        // Normalise valuation history from land.valuations relationship
         const rawHistory = land.valuations ?? arrayField(land, "valuation_history");
         const valuationHistory = rawHistory.map((r) =>
           Array.isArray(r)
@@ -275,8 +295,8 @@ export default function EditLand() {
             : { year: Number(r.year), month: Number(r.month), value: r.value }
         );
 
-        // Normalise comm_lines
-        const rawComm  = arrayField(land, "comm_lines");
+        // Normalise comm_lines (stored as [[network, strength], ...])
+        const rawComm = arrayField(land, "comm_lines");
         const commLines = rawComm.map((r) =>
           Array.isArray(r)
             ? { network: r[0] ?? "", strength: r[1] ?? "" }
@@ -342,14 +362,14 @@ export default function EditLand() {
 
   const setDetailField = (name, value) => setDetail((d) => ({ ...d, [name]: value }));
 
-  const handlePolygonChange = (polygon) => setForm({ ...form, polygon });
+  const handlePolygonChange = (polygon) => setForm((f) => ({ ...f, polygon }));
 
   const toggleCoordinateMode = () => {
     if (!usePolygon && (form.lat || form.lng) && !window.confirm("Switching to polygon will clear lat/lng. Continue?")) return;
     if (usePolygon && form.polygon && !window.confirm("Switching to point will clear polygon. Continue?")) return;
-    if (!usePolygon) setForm({ ...form, lat: "", lng: "", polygon: null });
-    else setForm({ ...form, polygon: null });
-    setUsePolygon(!usePolygon);
+    if (!usePolygon) setForm((f) => ({ ...f, lat: "", lng: "", polygon: null }));
+    else             setForm((f) => ({ ...f, polygon: null }));
+    setUsePolygon((v) => !v);
   };
 
   const handleImageChange = (e) => {
@@ -369,12 +389,14 @@ export default function EditLand() {
   };
 
   const buildGeometry = () => {
-    if (usePolygon && form.polygon) return { type: "Polygon", coordinates: form.polygon.coordinates };
-    if (!usePolygon && form.lat && form.lng) return { type: "Point", coordinates: [parseFloat(form.lng), parseFloat(form.lat)] };
+    if (usePolygon && form.polygon)
+      return { type: "Polygon", coordinates: form.polygon.coordinates };
+    if (!usePolygon && form.lat && form.lng)
+      return { type: "Point", coordinates: [parseFloat(form.lng), parseFloat(form.lat)] };
     return null;
   };
 
-  // ── Submit — always FormData so array/geometry encoding is consistent ──────
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (usePolygon && !form.polygon)             return toast.error("Please draw a polygon on the map");
@@ -440,8 +462,6 @@ export default function EditLand() {
 
     try {
       setLoading(true);
-      // Always use FormData — ensures geometry and all JSON arrays are
-      // correctly stringified and decoded by the controller's decodeJsonStrings()
       await api.post(`/admin/lands/${id}`, buildFormData(payload, newImages, removeImages));
       toast.success("Land updated successfully");
       router.push("/admin/lands");
