@@ -10,7 +10,7 @@ import {
   ArrowLeft, MapPin, Package, Tag, MessageSquare,
   Send, Lock, CheckCircle, X, AlertCircle, Clock,
   TrendingUp, ChevronDown, ChevronUp, User, Wallet,
-  ShieldCheck, RefreshCw,
+  ShieldCheck, RefreshCw, Plus, Minus,
 } from "lucide-react";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -25,14 +25,14 @@ function useCurrentUser() {
 
 function StatusBadge({ status, large }) {
   const map = {
-    active:            { label: "Active",            cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-    in_escrow:         { label: "In Escrow",         cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-    sold:              { label: "Sold",               cls: "bg-white/5 text-white/30 border-white/10" },
-    cancelled:         { label: "Cancelled",         cls: "bg-red-500/10 text-red-400 border-red-500/20" },
-    awaiting_payment:  { label: "Awaiting Payment",  cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
-    paid:              { label: "Paid",               cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
-    completed:         { label: "Completed",         cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
-    disputed:          { label: "Disputed",          cls: "bg-red-500/10 text-red-400 border-red-500/20" },
+    active:           { label: "Active",           cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+    in_escrow:        { label: "In Escrow",        cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+    sold:             { label: "Sold",              cls: "bg-white/5 text-white/30 border-white/10" },
+    cancelled:        { label: "Cancelled",        cls: "bg-red-500/10 text-red-400 border-red-500/20" },
+    awaiting_payment: { label: "Awaiting Payment", cls: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+    paid:             { label: "Paid",             cls: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+    completed:        { label: "Completed",        cls: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+    disputed:         { label: "Disputed",         cls: "bg-red-500/10 text-red-400 border-red-500/20" },
   };
   const s = map[status] ?? map.active;
   return (
@@ -59,21 +59,88 @@ function Panel({ title, icon, children, defaultOpen = true }) {
   );
 }
 
+// ─── Units Stepper ─────────────────────────────────────────────────────────────
+// Reusable stepper with hard max, double-click to fill, clamping on blur
+function UnitsStepper({ value, onChange, max, placeholder }) {
+  const numVal = Number(value) || 0;
+
+  const step = (delta) => {
+    const next = Math.min(Math.max(1, numVal + delta), max);
+    onChange(String(next));
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {/* − */}
+      <button
+        type="button"
+        onClick={() => step(-1)}
+        disabled={numVal <= 1 || !value}
+        className="w-8 h-8 shrink-0 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        aria-label="Decrease units"
+      >
+        <Minus size={12} />
+      </button>
+
+      <input
+        type="number"
+        min={1}
+        max={max || undefined}
+        value={value}
+        placeholder={placeholder ?? `Max ${max}`}
+        onChange={(e) => {
+          const raw = e.target.value;
+          if (raw === "") { onChange(""); return; }
+          const n = Math.floor(Number(raw));
+          if (isNaN(n) || n < 0) return;
+          onChange(String(max ? Math.min(n, max) : n));
+        }}
+        onBlur={(e) => {
+          const n = Math.floor(Number(e.target.value));
+          if (!isNaN(n) && n > 0) onChange(String(Math.min(Math.max(1, n), max || n)));
+          else if (e.target.value !== "") onChange("");
+        }}
+        onDoubleClick={() => { if (max > 0) onChange(String(max)); }}
+        className="flex-1 bg-white/5 border border-white/10 focus:border-amber-500/40 text-white placeholder-white/20 px-3 py-2 rounded-lg text-sm outline-none transition-all text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+      />
+
+      {/* + */}
+      <button
+        type="button"
+        onClick={() => step(1)}
+        disabled={max > 0 && numVal >= max}
+        className="w-8 h-8 shrink-0 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+        aria-label="Increase units"
+      >
+        <Plus size={12} />
+      </button>
+    </div>
+  );
+}
+
 // ─── Offer Form ───────────────────────────────────────────────────────────────
 function OfferForm({ listing, onSuccess }) {
-  const [form, setForm] = useState({ units: "", offer_price_display: "", message: "" });
+  const maxUnits = listing.units_for_sale ?? 0;
+
+  const [form, setForm]     = useState({ units: "", offer_price_display: "", message: "" });
   const [loading, setLoading] = useState(false);
 
   const offerKobo  = Math.round((parseFloat(form.offer_price_display) || 0) * 100);
-  const totalNaira = offerKobo > 0 && form.units ? (offerKobo * parseInt(form.units)) / 100 : null;
+  const totalNaira = offerKobo > 0 && form.units
+    ? (offerKobo * parseInt(form.units)) / 100
+    : null;
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.units || !offerKobo) return toast.error("Fill in units and price");
+    const units = parseInt(form.units);
+    if (!units || units <= 0)          return toast.error("Enter a valid number of units");
+    if (units > maxUnits)              return toast.error(`Max ${maxUnits} units available`);
+    if (!offerKobo || offerKobo <= 0)  return toast.error("Enter a valid price per unit");
+
     setLoading(true);
     try {
       await api.post(`/marketplace/${listing.id}/offers`, {
-        units:            parseInt(form.units),
+        units,
         offer_price_kobo: offerKobo,
         message:          form.message || undefined,
       });
@@ -89,38 +156,69 @@ function OfferForm({ listing, onSuccess }) {
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-white/30 uppercase tracking-widest font-bold block mb-1.5">Units</label>
-          <input type="number" min={1} max={listing.units_for_sale}
-            value={form.units} onChange={(e) => setForm((f) => ({ ...f, units: e.target.value }))}
-            placeholder={`Max ${listing.units_for_sale}`}
-            className="w-full bg-white/5 border border-white/10 focus:border-amber-500/40 text-white placeholder-white/20 px-3 py-2.5 rounded-xl text-sm outline-none transition-all" />
+      {/* Units with stepper */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-xs text-white/30 uppercase tracking-widest font-bold">
+            Units
+          </label>
+          <span className="text-[10px] text-white/20">
+            {maxUnits} available · double-click to fill
+          </span>
         </div>
-        <div>
-          <label className="text-xs text-white/30 uppercase tracking-widest font-bold block mb-1.5">Price / Unit (₦)</label>
-          <input type="number" min={0} step="0.01"
-            value={form.offer_price_display} onChange={(e) => setForm((f) => ({ ...f, offer_price_display: e.target.value }))}
-            placeholder={`Ask: ₦${(listing.asking_price_kobo / 100).toLocaleString()}`}
-            className="w-full bg-white/5 border border-white/10 focus:border-amber-500/40 text-white placeholder-white/20 px-3 py-2.5 rounded-xl text-sm outline-none transition-all" />
-        </div>
+        <UnitsStepper
+          value={form.units}
+          onChange={(v) => setForm((f) => ({ ...f, units: v }))}
+          max={maxUnits}
+          placeholder={`1 – ${maxUnits}`}
+        />
+        {form.units && Number(form.units) >= maxUnits && (
+          <p className="text-[10px] text-amber-400/60 mt-1">Maximum units selected</p>
+        )}
       </div>
 
+      {/* Price per unit */}
+      <div>
+        <label className="text-xs text-white/30 uppercase tracking-widest font-bold block mb-1.5">
+          Price / Unit (₦)
+        </label>
+        <input
+          type="number" min={0} step="0.01"
+          value={form.offer_price_display}
+          onChange={(e) => setForm((f) => ({ ...f, offer_price_display: e.target.value }))}
+          placeholder={`Ask: ₦${(listing.asking_price_kobo / 100).toLocaleString()}`}
+          className="w-full bg-white/5 border border-white/10 focus:border-amber-500/40 text-white placeholder-white/20 px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+        />
+      </div>
+
+      {/* Total preview */}
       {totalNaira !== null && (
         <div className="flex justify-between items-center rounded-lg bg-amber-500/5 border border-amber-500/15 px-3 py-2">
           <span className="text-xs text-white/35">Total offer</span>
-          <span className="text-sm font-bold text-amber-400">₦{totalNaira.toLocaleString("en-NG", { minimumFractionDigits: 2 })}</span>
+          <span className="text-sm font-bold text-amber-400">
+            ₦{totalNaira.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+          </span>
         </div>
       )}
 
-      <input type="text" value={form.message} onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+      {/* Optional message */}
+      <input
+        type="text"
+        value={form.message}
+        onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
         placeholder="Optional message to seller…"
-        className="w-full bg-white/5 border border-white/10 focus:border-amber-500/40 text-white placeholder-white/20 px-3 py-2.5 rounded-xl text-sm outline-none transition-all" />
+        className="w-full bg-white/5 border border-white/10 focus:border-amber-500/40 text-white placeholder-white/20 px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+      />
 
-      <button type="submit" disabled={loading}
-        className="w-full py-3 rounded-xl font-bold text-[#0D1F1A] text-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.01] disabled:opacity-50"
-        style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}>
-        {loading ? <><div className="w-3.5 h-3.5 border-2 border-[#0D1F1A]/40 border-t-[#0D1F1A] rounded-full animate-spin" />Submitting…</> : "Submit Offer"}
+      <button
+        type="submit"
+        disabled={loading || !form.units || Number(form.units) <= 0 || !offerKobo}
+        className="w-full py-3 rounded-xl font-bold text-[#0D1F1A] text-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.01] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+        style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}
+      >
+        {loading
+          ? <><div className="w-3.5 h-3.5 border-2 border-[#0D1F1A]/40 border-t-[#0D1F1A] rounded-full animate-spin" />Submitting…</>
+          : "Submit Offer"}
       </button>
     </form>
   );
@@ -128,7 +226,7 @@ function OfferForm({ listing, onSuccess }) {
 
 // ─── Offers List (for seller) ─────────────────────────────────────────────────
 function OffersList({ listing, onUpdate }) {
-  const offers = listing.pending_offers ?? [];
+  const offers  = listing.pending_offers ?? [];
   const [acting, setActing] = useState(null);
 
   const handleAccept = async (offerId) => {
@@ -153,7 +251,9 @@ function OffersList({ listing, onUpdate }) {
     } finally { setActing(null); }
   };
 
-  if (!offers.length) return <p className="text-xs text-white/25 py-2">No pending offers yet.</p>;
+  if (!offers.length) {
+    return <p className="text-xs text-white/25 py-2">No pending offers yet.</p>;
+  }
 
   return (
     <div className="space-y-3">
@@ -172,14 +272,18 @@ function OffersList({ listing, onUpdate }) {
             <StatusBadge status={offer.status} />
           </div>
           {offer.message && (
-            <p className="text-xs text-white/40 italic border-t border-white/5 pt-2 mt-2">"{offer.message}"</p>
+            <p className="text-xs text-white/40 italic border-t border-white/5 pt-2 mt-2">
+              &ldquo;{offer.message}&rdquo;
+            </p>
           )}
           <div className="flex gap-2 mt-3">
-            <button onClick={() => handleAccept(offer.id)} disabled={!!acting}
+            <button
+              onClick={() => handleAccept(offer.id)} disabled={!!acting}
               className="flex-1 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-bold hover:bg-emerald-500/20 transition-all disabled:opacity-50">
               {acting === offer.id + "_accept" ? "…" : "Accept"}
             </button>
-            <button onClick={() => handleReject(offer.id)} disabled={!!acting}
+            <button
+              onClick={() => handleReject(offer.id)} disabled={!!acting}
               className="flex-1 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/20 transition-all disabled:opacity-50">
               {acting === offer.id + "_reject" ? "…" : "Reject"}
             </button>
@@ -190,74 +294,138 @@ function OffersList({ listing, onUpdate }) {
   );
 }
 
-// ─── Chat ─────────────────────────────────────────────────────────────────────
+// ─── Chat (inline, no Panel wrapper — caller wraps) ───────────────────────────
 function ChatPanel({ listing, currentUser }) {
   const [messages, setMessages] = useState([]);
   const [body, setBody]         = useState("");
   const [sending, setSending]   = useState(false);
+  const [loadingMsgs, setLoadingMsgs] = useState(true);
   const bottomRef = useRef(null);
+  const inputRef  = useRef(null);
   const isSeller  = currentUser?.id === listing.seller_id;
 
   const fetchMessages = useCallback(async () => {
     try {
-      const params = isSeller ? { with: listing.pending_offers?.[0]?.buyer_id } : {};
+      const params = isSeller
+        ? { with: listing.pending_offers?.[0]?.buyer_id }
+        : {};
       const res = await api.get(`/marketplace/${listing.id}/messages`, { params });
       setMessages(res.data?.data ?? []);
-    } catch { /* silent */ }
+    } catch { /* silent */ } finally {
+      setLoadingMsgs(false);
+    }
   }, [listing.id, isSeller, listing.pending_offers]);
 
   useEffect(() => { fetchMessages(); }, [fetchMessages]);
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const send = async (e) => {
     e.preventDefault();
     if (!body.trim()) return;
     setSending(true);
+    const optimisticMsg = {
+      id:         `tmp-${Date.now()}`,
+      sender_id:  currentUser?.id,
+      sender:     currentUser,
+      body:       body.trim(),
+      created_at: new Date().toISOString(),
+      _optimistic: true,
+    };
+    setMessages((prev) => [...prev, optimisticMsg]);
+    setBody("");
     try {
-      const payload = { body };
+      const payload = { body: optimisticMsg.body };
       if (isSeller) payload.receiver_id = listing.pending_offers?.[0]?.buyer_id;
       await api.post(`/marketplace/${listing.id}/messages`, payload);
-      setBody("");
+      // Refetch to replace optimistic with real message
       fetchMessages();
     } catch (err) {
+      // Remove optimistic on failure
+      setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
       toast.error(err.response?.data?.message || "Failed to send");
-    } finally { setSending(false); }
+      setBody(optimisticMsg.body);
+    } finally {
+      setSending(false);
+      inputRef.current?.focus();
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      send(e);
+    }
   };
 
   return (
-    <div className="flex flex-col h-80">
-      <div className="flex-1 overflow-y-auto space-y-2 mb-3 pr-1">
-        {messages.length === 0 && (
-          <p className="text-xs text-white/20 text-center py-8">No messages yet. Say hello!</p>
-        )}
-        {messages.map((m) => {
-          const isMe = m.sender_id === currentUser?.id;
-          return (
-            <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
-                isMe ? "bg-amber-500/20 text-white" : "bg-white/5 text-white/70"
-              }`}>
-                {!isMe && <p className="text-[10px] font-bold text-white/30 mb-0.5">{m.sender?.name ?? "Seller"}</p>}
-                <p className="text-sm leading-relaxed">{m.body}</p>
-                <p className="text-[10px] text-white/20 mt-1 text-right">
-                  {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </p>
+    <div className="flex flex-col" style={{ height: 340 }}>
+      {/* Message list */}
+      <div className="flex-1 overflow-y-auto space-y-2 mb-3 pr-1 scrollbar-thin">
+        {loadingMsgs ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full gap-2">
+            <MessageSquare size={24} className="text-white/10" />
+            <p className="text-xs text-white/20 text-center">
+              No messages yet. Start the conversation!
+            </p>
+          </div>
+        ) : (
+          messages.map((m) => {
+            const isMe = m.sender_id === currentUser?.id;
+            return (
+              <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 ${
+                  isMe
+                    ? "bg-amber-500/20 text-white"
+                    : "bg-white/[0.06] text-white/75"
+                } ${m._optimistic ? "opacity-60" : ""}`}>
+                  {!isMe && (
+                    <p className="text-[10px] font-bold text-white/30 mb-0.5">
+                      {m.sender?.name ?? "Seller"}
+                    </p>
+                  )}
+                  <p className="text-sm leading-relaxed break-words">{m.body}</p>
+                  <p className="text-[10px] text-white/20 mt-1 text-right">
+                    {m._optimistic
+                      ? "Sending…"
+                      : new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
         <div ref={bottomRef} />
       </div>
-      <form onSubmit={send} className="flex gap-2">
-        <input value={body} onChange={(e) => setBody(e.target.value)}
-          placeholder="Type a message…"
-          className="flex-1 bg-white/5 border border-white/10 focus:border-amber-500/40 text-white placeholder-white/20 px-3 py-2.5 rounded-xl text-sm outline-none transition-all" />
-        <button type="submit" disabled={sending || !body.trim()}
-          className="w-10 h-10 rounded-xl flex items-center justify-center transition-all disabled:opacity-30"
-          style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}>
+
+      {/* Input row */}
+      <div className="flex gap-2 border-t border-white/5 pt-3">
+        <input
+          ref={inputRef}
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a message… (Enter to send)"
+          className="flex-1 bg-white/5 border border-white/10 focus:border-amber-500/40 text-white placeholder-white/20 px-3 py-2.5 rounded-xl text-sm outline-none transition-all"
+        />
+        <button
+          type="button"
+          onClick={send}
+          disabled={sending || !body.trim()}
+          className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all disabled:opacity-30 hover:scale-105 active:scale-95"
+          style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}
+          aria-label="Send message"
+        >
           <Send size={14} className="text-[#0D1F1A]" />
         </button>
-      </form>
+      </div>
     </div>
   );
 }
@@ -299,12 +467,11 @@ function EscrowPanel({ escrow, currentUser, onUpdate }) {
 
   return (
     <div className="space-y-4">
-      {/* Summary */}
       <div className="grid grid-cols-2 gap-3">
         {[
-          ["Units", escrow.units],
+          ["Units",        escrow.units],
           ["Price / Unit", `₦${(escrow.price_per_unit_kobo / 100).toLocaleString("en-NG")}`],
-          ["Total", `₦${(escrow.total_kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`],
+          ["Total",        `₦${(escrow.total_kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`],
           ["Platform Fee", `₦${(escrow.platform_fee_kobo / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`],
         ].map(([label, val]) => (
           <div key={label} className="rounded-xl bg-white/[0.03] border border-white/5 px-3 py-2.5">
@@ -331,23 +498,29 @@ function EscrowPanel({ escrow, currentUser, onUpdate }) {
         )}
       </div>
 
-      {/* Buyer pays */}
       {isBuyer && escrow.status === "awaiting_payment" && (
         <div className="space-y-3 border-t border-white/5 pt-4">
-          <p className="text-xs text-white/40">Enter your transaction PIN to pay from your wallet balance.</p>
-          <input type="password" inputMode="numeric" maxLength={4}
-            value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          <p className="text-xs text-white/40">
+            Enter your transaction PIN to pay from your wallet balance.
+          </p>
+          <input
+            type="password" inputMode="numeric" maxLength={4}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
             className="w-full bg-white/5 border border-white/10 focus:border-amber-500/40 text-white placeholder-white/20 px-4 py-3 rounded-xl text-center text-2xl tracking-[0.5em] outline-none transition-all"
-            placeholder="••••" />
-          <button onClick={pay} disabled={loading || pin.length !== 4}
+            placeholder="••••"
+          />
+          <button
+            onClick={pay} disabled={loading || pin.length !== 4}
             className="w-full py-3 rounded-xl font-bold text-[#0D1F1A] flex items-center justify-center gap-2 transition-all hover:scale-[1.01] disabled:opacity-50"
             style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}>
-            {loading ? <><div className="w-4 h-4 border-2 border-[#0D1F1A]/40 border-t-[#0D1F1A] rounded-full animate-spin" />Processing…</> : <><Wallet size={14} /> Pay ₦{(escrow.total_kobo / 100).toLocaleString("en-NG")}</>}
+            {loading
+              ? <><div className="w-4 h-4 border-2 border-[#0D1F1A]/40 border-t-[#0D1F1A] rounded-full animate-spin" />Processing…</>
+              : <><Wallet size={14} /> Pay ₦{(escrow.total_kobo / 100).toLocaleString("en-NG")}</>}
           </button>
         </div>
       )}
 
-      {/* Dispute */}
       {isBuyer && escrow.status === "paid" && (
         <button onClick={dispute}
           className="w-full py-2.5 rounded-xl border border-red-500/20 text-red-400 text-xs font-bold hover:bg-red-500/10 transition-all">
@@ -367,8 +540,8 @@ function EscrowPanel({ escrow, currentUser, onUpdate }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ListingDetailPage() {
-  const { id }    = useParams();
-  const router    = useRouter();
+  const { id }      = useParams();
+  const router      = useRouter();
   const currentUser = useCurrentUser();
 
   const [listing, setListing] = useState(null);
@@ -387,9 +560,9 @@ export default function ListingDetailPage() {
 
   const fetchEscrow = useCallback(async () => {
     try {
-      const res = await api.get("/marketplace/my/escrows");
+      const res    = await api.get("/marketplace/my/escrows");
       const escrows = res.data?.data?.data ?? res.data?.data ?? [];
-      const match = escrows.find((e) => e.listing_id === parseInt(id));
+      const match  = escrows.find((e) => e.listing_id === parseInt(id));
       setEscrow(match ?? null);
     } catch { /* silent */ }
   }, [id]);
@@ -406,13 +579,14 @@ export default function ListingDetailPage() {
 
   if (!listing) return null;
 
-  const land       = listing.land;
-  const image      = land?.images?.[0]?.image_url;
-  const isSeller   = currentUser?.id === listing.seller_id;
-  const isActive   = listing.status === "active";
-  const inEscrow   = listing.status === "in_escrow";
-  const canOffer   = !isSeller && isActive && currentUser;
-  const canChat    = currentUser && (isSeller || listing.pending_offers?.some((o) => o.buyer_id === currentUser.id));
+  const land     = listing.land;
+  const image    = land?.images?.[0]?.image_url;
+  const isSeller = currentUser?.id === listing.seller_id;
+  const isActive = listing.status === "active";
+  const canOffer = !isSeller && isActive && currentUser;
+  const canChat  = currentUser && (
+    isSeller || listing.pending_offers?.some((o) => o.buyer_id === currentUser.id)
+  );
 
   return (
     <div className="min-h-screen bg-[#0D1F1A]" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -442,17 +616,23 @@ export default function ListingDetailPage() {
                 </div>
               )}
               <div className="p-5">
-                {!image && <div className="flex items-center justify-between mb-3"><StatusBadge status={listing.status} large /></div>}
-                <p className="text-xs text-amber-500/70 font-bold uppercase tracking-widest mb-1">{land?.title}</p>
+                {!image && (
+                  <div className="flex items-center justify-between mb-3">
+                    <StatusBadge status={listing.status} large />
+                  </div>
+                )}
+                <p className="text-xs text-amber-500/70 font-bold uppercase tracking-widest mb-1">
+                  {land?.title}
+                </p>
                 <div className="flex items-center gap-1.5 text-white/35 text-xs mb-4">
                   <MapPin size={11} /> {land?.location}
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   {[
-                    ["Units for Sale", listing.units_for_sale],
+                    ["Units for Sale",    listing.units_for_sale],
                     ["Asking Price / Unit", formatNaira(listing.asking_price_kobo)],
-                    ["Total Value", `₦${((listing.asking_price_kobo * listing.units_for_sale) / 100).toLocaleString("en-NG")}`],
+                    ["Total Value",       `₦${((listing.asking_price_kobo * listing.units_for_sale) / 100).toLocaleString("en-NG")}`],
                   ].map(([label, val]) => (
                     <div key={label} className="rounded-xl bg-white/5 border border-white/5 px-3 py-2.5 text-center">
                       <p className="text-[10px] text-white/25 uppercase tracking-widest">{label}</p>
@@ -504,14 +684,14 @@ export default function ListingDetailPage() {
               </Panel>
             )}
 
-            {/* Escrow panel (if in_escrow or completed) */}
+            {/* Escrow panel */}
             {escrow && (
               <Panel title="Escrow & Payment" icon={<ShieldCheck size={14} />}>
                 <EscrowPanel escrow={escrow} currentUser={currentUser} onUpdate={refresh} />
               </Panel>
             )}
 
-            {/* Chat */}
+            {/* Chat — inline below property card for natural flow */}
             {canChat && (
               <Panel title="Negotiation Chat" icon={<MessageSquare size={14} />}>
                 <ChatPanel listing={listing} currentUser={currentUser} />
@@ -532,34 +712,36 @@ export default function ListingDetailPage() {
             {/* Buyer: your offer status */}
             {!isSeller && listing.pending_offers?.some((o) => o.buyer_id === currentUser?.id) && (
               <Panel title="Your Offer" icon={<CheckCircle size={14} />} defaultOpen>
-                {listing.pending_offers.filter((o) => o.buyer_id === currentUser?.id).map((offer) => (
-                  <div key={offer.id} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-bold text-white">
-                          {offer.units} units @ {formatNaira(offer.offer_price_kobo)}
-                        </p>
-                        <p className="text-xs text-white/35 mt-0.5">
-                          Total: ₦{((offer.offer_price_kobo * offer.units) / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
-                        </p>
+                {listing.pending_offers
+                  .filter((o) => o.buyer_id === currentUser?.id)
+                  .map((offer) => (
+                    <div key={offer.id} className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-bold text-white">
+                            {offer.units} units @ {formatNaira(offer.offer_price_kobo)}
+                          </p>
+                          <p className="text-xs text-white/35 mt-0.5">
+                            Total: ₦{((offer.offer_price_kobo * offer.units) / 100).toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <StatusBadge status={offer.status} />
                       </div>
-                      <StatusBadge status={offer.status} />
+                      {offer.status === "pending" && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              await api.patch(`/marketplace/${listing.id}/offers/${offer.id}/withdraw`);
+                              toast.success("Offer withdrawn");
+                              refresh();
+                            } catch { toast.error("Failed to withdraw"); }
+                          }}
+                          className="w-full py-2 rounded-lg border border-white/10 text-white/40 text-xs font-bold hover:bg-white/5 transition-all">
+                          Withdraw Offer
+                        </button>
+                      )}
                     </div>
-                    {offer.status === "pending" && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            await api.patch(`/marketplace/${listing.id}/offers/${offer.id}/withdraw`);
-                            toast.success("Offer withdrawn");
-                            refresh();
-                          } catch { toast.error("Failed to withdraw"); }
-                        }}
-                        className="w-full py-2 rounded-lg border border-white/10 text-white/40 text-xs font-bold hover:bg-white/5 transition-all">
-                        Withdraw Offer
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  ))}
               </Panel>
             )}
 
@@ -567,7 +749,9 @@ export default function ListingDetailPage() {
             {!currentUser && (
               <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-center">
                 <Lock size={24} className="text-white/20 mx-auto mb-3" />
-                <p className="text-sm text-white/40 mb-4">Sign in to make offers and chat with the seller</p>
+                <p className="text-sm text-white/40 mb-4">
+                  Sign in to make offers and chat with the seller
+                </p>
                 <Link href="/login"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[#0D1F1A] text-sm transition-all hover:scale-105"
                   style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}>
@@ -580,11 +764,11 @@ export default function ListingDetailPage() {
             <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-5 space-y-3">
               <p className="text-xs font-black uppercase tracking-[0.2em] text-white/30">How It Works</p>
               {[
-                [TrendingUp, "Make an offer at your price"],
-                [CheckCircle, "Seller accepts → escrow created"],
-                [Wallet, "Pay from wallet — funds held in escrow"],
-                [ShieldCheck, "Units transfer automatically on payment"],
-                [RefreshCw, "Raise a dispute if something goes wrong"],
+                [TrendingUp,   "Make an offer at your price"],
+                [CheckCircle,  "Seller accepts → escrow created"],
+                [Wallet,       "Pay from wallet — funds held in escrow"],
+                [ShieldCheck,  "Units transfer automatically on payment"],
+                [RefreshCw,    "Raise a dispute if something goes wrong"],
               ].map(([Icon, text]) => (
                 <div key={text} className="flex items-center gap-2.5">
                   <Icon size={12} className="text-amber-500/60 shrink-0" />
