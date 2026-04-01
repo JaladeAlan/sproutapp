@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import api from "../../utils/api";
@@ -22,10 +22,8 @@ const fmtNaira = (v) =>
     ? `₦${Number(v).toLocaleString("en-NG", { minimumFractionDigits: 2 })}`
     : null;
 
-/* ─── Certificate number formatter ─────────────────────────────────────── */
-// Normalises input to CERT-YYYY-L0000-00000 as the user types
+/* ─── Certificate number normaliser ────────────────────────────────────── */
 function normaliseCertNumber(raw) {
-  // Strip everything that isn't alphanumeric or hyphen, uppercase
   return raw.replace(/[^A-Z0-9\-]/gi, "").toUpperCase();
 }
 
@@ -89,7 +87,7 @@ function ResultCard({ result, onReset }) {
             <div className="flex items-start gap-2.5 mb-4 px-3 py-2.5 rounded-xl border border-amber-500/15 bg-amber-500/5">
               <RefreshCw size={12} className="text-amber-400/60 shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-400/70 leading-relaxed">
-                This certificate has been updated to reflect the holder's current unit balance.
+                This certificate has been updated to reflect the holder&apos;s current unit balance.
                 Originally issued {fmtDate(d.issued_at)}.
               </p>
             </div>
@@ -108,14 +106,14 @@ function ResultCard({ result, onReset }) {
 
           {/* Data rows */}
           {[
-            ["Certificate No.",    d.cert_number,                                            true],
-            ["Property",          d.property_title,                                          false],
-            ["Location",          d.property_location,                                       false],
-            ["Current Units",     `${Number(d.units).toLocaleString()} units`,               false],
-            ["Total Invested",    fmtNaira(d.total_invested),                                false],
-            ["Originally Issued", fmtDate(d.issued_at),                                      false],
+            ["Certificate No.",    d.cert_number,                                   true],
+            ["Property",          d.property_title,                                 false],
+            ["Location",          d.property_location,                              false],
+            ["Current Units",     `${Number(d.units).toLocaleString()} units`,      false],
+            ["Total Invested",    fmtNaira(d.total_invested),                       false],
+            ["Originally Issued", fmtDate(d.issued_at),                             false],
             wasUpdated ? ["Last Updated", fmtDate(d.last_updated_at), false] : null,
-            ["Status",            d.status?.toUpperCase(),                                   false],
+            ["Status",            d.status?.toUpperCase(),                          false],
           ]
             .filter(Boolean)
             .map(([label, value, mono]) => (
@@ -157,30 +155,29 @@ function ResultCard({ result, onReset }) {
   );
 }
 
-/* ─── Main Page ─────────────────────────────────────────────────────────── */
-export default function VerifyPage() {
+/* ─── Inner page — contains all hooks that need Suspense ────────────────── */
+function VerifyCertPageInner() {
   const params       = useParams();
   const searchParams = useSearchParams();
   const router       = useRouter();
   const inputRef     = useRef(null);
 
-  // Support both /verify/CERT-... (QR scan) and /verify?code=CERT-... (manual)
+  // Support /verify/CERT-... (QR / direct link) and /verify?code=CERT-... (manual)
   const prefilledCode =
     params?.certNumber ||
     searchParams?.get("code") ||
     "";
 
-  const [code, setCode]       = useState(normaliseCertNumber(prefilledCode));
-  const [result, setResult]   = useState(null);
+  const [code, setCode]     = useState(normaliseCertNumber(prefilledCode));
+  const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+  const [error, setError]   = useState("");
 
-  // Auto-verify if a code arrived via URL (QR scan)
+  // Auto-verify when a code arrives via URL
   useEffect(() => {
     if (prefilledCode) {
       verify(normaliseCertNumber(prefilledCode));
     } else {
-      // Focus the input on fresh page load
       setTimeout(() => inputRef.current?.focus(), 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -212,7 +209,6 @@ export default function VerifyPage() {
     setCode("");
     setResult(null);
     setError("");
-    // Clear URL param if set
     router.replace("/verify");
     setTimeout(() => inputRef.current?.focus(), 100);
   }
@@ -258,14 +254,13 @@ export default function VerifyPage() {
           </h1>
           <p className="text-xs text-white/30 leading-relaxed">
             Enter a SproutVest certificate number to verify its authenticity
-            and check the current holder's details.
+            and check the current holder&apos;s details.
           </p>
         </div>
 
-        {/* ── Input form (hidden once result is shown) ── */}
+        {/* Input form — hidden once result is shown */}
         {!result && (
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.025] p-6 mb-5">
-
             <label className="block text-[10px] font-black uppercase tracking-[0.22em] text-white/35 mb-2">
               Certificate Number
             </label>
@@ -309,12 +304,10 @@ export default function VerifyPage() {
               </button>
             </div>
 
-            {/* Format hint */}
             <p className="text-[10px] text-white/20 mt-2">
               Format: CERT-YYYY-L0000-00000 · Found on your certificate PDF or in-app viewer
             </p>
 
-            {/* Error */}
             {error && (
               <p className="text-xs text-red-400 mt-3 flex items-center gap-1.5">
                 <ShieldX size={12} /> {error}
@@ -323,7 +316,7 @@ export default function VerifyPage() {
           </div>
         )}
 
-        {/* ── Loading state ── */}
+        {/* Loading */}
         {loading && (
           <div className="text-center py-8">
             <Loader2 size={28} className="text-amber-500/50 animate-spin mx-auto mb-3" />
@@ -331,7 +324,7 @@ export default function VerifyPage() {
           </div>
         )}
 
-        {/* ── Result ── */}
+        {/* Result */}
         {result && !loading && (
           <ResultCard result={result} onReset={handleReset} />
         )}
@@ -345,5 +338,20 @@ export default function VerifyPage() {
 
       </div>
     </div>
+  );
+}
+
+/* ─── Exported page — wraps inner component in Suspense ─────────────────── */
+export default function VerifyCertPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#0D1F1A] flex items-center justify-center">
+          <div className="w-10 h-10 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <VerifyCertPageInner />
+    </Suspense>
   );
 }
