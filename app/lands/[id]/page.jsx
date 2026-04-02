@@ -293,10 +293,10 @@ function PriceTrendPanel({ valuations = [] }) {
             return (
               <g key={i}>
                 <line x1={PAD.l} x2={W - PAD.r} y1={y} y2={y}
-                  stroke="rgba(255,255,255,0.05)" strokeWidth="1"
+                  stroke="rgba(255,255,255,0.5)" strokeWidth="1"
                   strokeDasharray={i === 0 ? "none" : "3 4"} />
-                <text x={PAD.l - 8} y={y + 3.5} textAnchor="end" fontSize="8.5"
-                  fill="rgba(255,255,255,0.22)" fontFamily="'DM Sans', sans-serif">
+                <text x={PAD.l - 8} y={y + 3.5} textAnchor="end" fontSize="12"
+                  fill="rgba(255,255,255,0.52)" fontFamily="'DM Sans', sans-serif">
                   {fmtVal(v)}
                 </text>
               </g>
@@ -305,7 +305,7 @@ function PriceTrendPanel({ valuations = [] }) {
 
           <path d={areaPath} fill="url(#areaGradPTC)" clipPath="url(#revealPTC)" />
           <path d={linePath} fill="none" stroke="#E8A850" strokeWidth="4"
-            strokeOpacity="0.18" strokeLinecap="round" clipPath="url(#revealPTC)" />
+            strokeOpacity="0.75" strokeLinecap="round" clipPath="url(#revealPTC)" />
           <path d={linePath} fill="none" stroke="url(#lineGradPTC)" strokeWidth="2"
             strokeLinecap="round" strokeLinejoin="round" clipPath="url(#revealPTC)" />
 
@@ -332,7 +332,7 @@ function PriceTrendPanel({ valuations = [] }) {
           {/* X-axis labels */}
           {coords.map(([x], i) => (
             <text key={i} x={x} y={H - 6} textAnchor="middle" fontSize="8"
-              fill={tooltip?.idx === i ? "rgba(232,168,80,0.9)" : "rgba(255,255,255,0.22)"}
+              fill={tooltip?.idx === i ? "rgba(232,168,80,0.9)" : "rgba(255,255,255,0.72)"}
               fontFamily="'DM Sans', sans-serif"
               fontWeight={tooltip?.idx === i ? "700" : "400"}>
               {pointLabel(points[i])}
