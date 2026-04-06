@@ -9,6 +9,8 @@ import {
   Loader2, RefreshCw, Search, X, ArrowRight,
 } from "lucide-react";
 
+const appname      = process.env.NEXT_PUBLIC_APP_NAME || "REU.ng";
+
 /* ─── Helpers ───────────────────────────────────────────────────────────── */
 const fmtDate = (d) =>
   d
@@ -136,7 +138,7 @@ function ResultCard({ result, onReset }) {
           <div className="flex items-center gap-2 pt-3">
             <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
             <p className="text-xs text-emerald-400/70">
-              Digital signature verified · Issued by SproutVest Technologies Ltd
+              Digital signature verified · Issued by {appname}
             </p>
           </div>
         </div>
@@ -243,7 +245,7 @@ function VerifyCertPageInner() {
         <div className="text-center mb-8">
           <Link href="/">
             <p className="text-[10px] font-black tracking-[0.35em] text-amber-500/50 hover:text-amber-500/70 transition-colors">
-              SPROUTVEST
+              {appname.toUpperCase()}
             </p>
           </Link>
           <h1
@@ -253,7 +255,7 @@ function VerifyCertPageInner() {
             Certificate Verification
           </h1>
           <p className="text-xs text-white/30 leading-relaxed">
-            Enter a SproutVest certificate number to verify its authenticity
+            Enter a {appname} certificate number to verify its authenticity
             and check the current holder&apos;s details.
           </p>
         </div>
@@ -331,8 +333,6 @@ function VerifyCertPageInner() {
 
         {/* Footer */}
         <p className="text-center text-[10px] text-white/15 mt-8 leading-relaxed">
-          SproutVest Technologies Ltd · sproutvest.com · info@sproutvest.com
-          <br />
           Certificate verification is publicly accessible and does not require an account.
         </p>
 
