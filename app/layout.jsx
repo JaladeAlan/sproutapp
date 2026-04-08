@@ -3,6 +3,8 @@ import ConditionalHeader from "./components/ConditionalHeader";
 import ConditionalFooter from "./components/ConditionalFooter";
 import { AuthProvider } from "../context/AuthContext";
 import "./globals.css";
+import WhatsAppButton from "./components/WhatsAppButton";
+
 
 export default function RootLayout({ children }) {
   return (
@@ -19,6 +21,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <ConditionalHeader />
           {children}
+          <WhatsAppButton />
           <ConditionalFooter />
           <ToasterProvider />
         </AuthProvider>

@@ -1164,7 +1164,7 @@ function AiChatView() {
         <div className="flex-1 min-w-0">
           <p className="font-bold text-white text-sm leading-none">AI Support Assistant</p>
           <p className="text-[11px] mt-0.5 truncate" style={{ color: DIMMED }}>
-            Powered by Claude · Replies instantly
+           Replies instantly
           </p>
         </div>
         <div className="flex items-center gap-1.5 text-xs font-semibold shrink-0" style={{ color: "#34D399" }}>
