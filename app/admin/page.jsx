@@ -8,17 +8,19 @@ import {
   MapPin, ShieldCheck, Gift, Wallet, FileText,
   ArrowRight, TrendingUp, Clock, CheckCircle,
   XCircle, Plus, Eye, MessageSquare, AlertCircle, Users,
-  LucideWalletCards
+  LucideWalletCards, HeadphonesIcon,
 } from "lucide-react";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
-    lands:     { total: 0, active: 0, disabled: 0 },
-    kyc:       { total: 0, pending: 0, approved: 0, rejected: 0 },
-    referrals: { total: 0, completed: 0, pending: 0, totalRewards: 0 },
-    support:   { total: 0, open: 0, waiting: 0 },
-    users:     { total: 0, suspended: 0, admins: 0 },
-    withdrawals: { pending: 0, processing: 0, totalKobo: 0 },
+    lands:       { total: 0, active: 0, disabled: 0 },
+    kyc:         { total: 0, pending: 0, approved: 0, rejected: 0 },
+    referrals:   { total: 0, completed: 0, pending: 0, totalRewards: 0 },
+    support:     { total: 0, open: 0, waiting: 0 },
+    users:       { total: 0, suspended: 0, admins: 0 },
+    withdrawals: { pending: 0, processing: 0 },
+    blog:        { total: 0, published: 0, draft: 0 },
+    liveChat:    { queued: 0, active: 0 },
   });
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +35,8 @@ export default function AdminDashboard() {
         supportAllRes, supportOpenRes, supportWaitingRes,
         usersAllRes, usersSuspendedRes, usersAdminRes,
         blogAllRes, blogPublishedRes, blogDraftRes,
-        withdrawalsPendingRes,  withdrawalsProcessingRes,
+        withdrawalsPendingRes, withdrawalsProcessingRes,
+        liveChatQueueRes,
       ] = await Promise.all([
         api.get("/admin/lands"),
         api.get("/admin/kyc?per_page=1"),
@@ -51,6 +54,7 @@ export default function AdminDashboard() {
         api.get("/admin/blog?per_page=1&status=draft"),
         api.get("/admin/withdrawals?status=pending&per_page=1"),
         api.get("/admin/withdrawals?status=processing&per_page=1"),
+        api.get("/admin/live-chat/queue"),
       ]);
 
       const landsData  = landsRes.data?.data?.data ?? landsRes.data?.data ?? [];
@@ -70,12 +74,17 @@ export default function AdminDashboard() {
       const usersSuspended = usersSuspendedRes.data?.data?.total ?? 0;
       const usersAdmins    = usersAdminRes.data?.data?.total     ?? 0;
 
-      const blogTotal     = blogAllRes.data?.data?.total ?? 0;
+      const blogTotal     = blogAllRes.data?.data?.total      ?? 0;
       const blogPublished = blogPublishedRes.data?.data?.total ?? 0;
-      const blogDraft     = blogDraftRes.data?.data?.total ?? 0;
+      const blogDraft     = blogDraftRes.data?.data?.total    ?? 0;
 
-      const wPending    = withdrawalsPendingRes.data?.data?.total ?? 0;
+      const wPending    = withdrawalsPendingRes.data?.data?.total    ?? 0;
       const wProcessing = withdrawalsProcessingRes.data?.data?.total ?? 0;
+
+      // Live chat queue: split into queued (no agent) vs active (claimed)
+      const queueData    = liveChatQueueRes.data?.data ?? [];
+      const lcQueued     = queueData.filter((t) => !t.agent_id).length;
+      const lcActive     = queueData.filter((t) => !!t.agent_id).length;
 
       setStats({
         lands: {
@@ -106,13 +115,17 @@ export default function AdminDashboard() {
           admins:    usersAdmins,
         },
         blog: {
-          total: blogTotal,
+          total:     blogTotal,
           published: blogPublished,
-          draft: blogDraft,
+          draft:     blogDraft,
         },
-         withdrawals: {
+        withdrawals: {
           pending:    wPending,
           processing: wProcessing,
+        },
+        liveChat: {
+          queued: lcQueued,
+          active: lcActive,
         },
       });
     } catch {
@@ -214,6 +227,17 @@ export default function AdminDashboard() {
         { label: "Processing", value: stats.withdrawals.processing, color: "text-blue-400" },
       ],
     },
+    {
+      label: "Live Support",
+      value: stats.liveChat.queued,
+      icon: <HeadphonesIcon size={22} />,
+      accent: "#10B981",
+      href: "/admin/live-chat",
+      sub: [
+        { label: "In Queue", value: stats.liveChat.queued, color: "text-amber-400" },
+        { label: "Active",   value: stats.liveChat.active, color: "text-emerald-400" },
+      ],
+    },
   ];
 
   return (
@@ -294,8 +318,8 @@ export default function AdminDashboard() {
               </span>
             </div>
             <div className="p-4 space-y-2">
-              <ManagementRow href="/admin/lands"        icon={<Eye size={15} />}  title="View All Lands"  subtitle={`Manage ${stats.lands.total} properties`} accent="white" />
-              <ManagementRow href="/admin/lands/create" icon={<Plus size={15} />} title="Add New Land"    subtitle="Create a new property listing"           accent="#C8873A" />
+              <ManagementRow href="/admin/lands"        icon={<Eye size={15} />}  title="View All Lands" subtitle={`Manage ${stats.lands.total} properties`} accent="white" />
+              <ManagementRow href="/admin/lands/create" icon={<Plus size={15} />} title="Add New Land"   subtitle="Create a new property listing"           accent="#C8873A" />
             </div>
           </div>
 
@@ -318,8 +342,8 @@ export default function AdminDashboard() {
               )}
             </div>
             <div className="p-4 space-y-2">
-              <ManagementRow href="/admin/kyc?status=pending" icon={<Clock size={15} />} title="Pending Reviews"   subtitle={`${stats.kyc.pending} awaiting review`} accent="#F59E0B" />
-              <ManagementRow href="/admin/kyc"                icon={<Eye  size={15} />} title="All Submissions"   subtitle="View all KYC verifications"              accent="white" />
+              <ManagementRow href="/admin/kyc?status=pending" icon={<Clock size={15} />} title="Pending Reviews"  subtitle={`${stats.kyc.pending} awaiting review`} accent="#F59E0B" />
+              <ManagementRow href="/admin/kyc"                icon={<Eye  size={15} />} title="All Submissions"  subtitle="View all KYC verifications"              accent="white" />
             </div>
           </div>
 
@@ -340,8 +364,8 @@ export default function AdminDashboard() {
               </span>
             </div>
             <div className="p-4 space-y-2">
-              <ManagementRow href="/admin/users"                   icon={<Eye        size={15} />} title="All Users"        subtitle={`Manage ${stats.users.total} accounts`}        accent="white" />
-              <ManagementRow href="/admin/users?suspended=true"    icon={<AlertCircle size={15} />} title="Suspended Users"  subtitle={`${stats.users.suspended} suspended accounts`} accent="#EF4444" highlight={stats.users.suspended > 0} />
+              <ManagementRow href="/admin/users"                icon={<Eye         size={15} />} title="All Users"       subtitle={`Manage ${stats.users.total} accounts`}        accent="white" />
+              <ManagementRow href="/admin/users?suspended=true" icon={<AlertCircle size={15} />} title="Suspended Users" subtitle={`${stats.users.suspended} suspended accounts`} accent="#EF4444" highlight={stats.users.suspended > 0} />
             </div>
           </div>
 
@@ -364,59 +388,42 @@ export default function AdminDashboard() {
               )}
             </div>
             <div className="p-4 space-y-2">
-              <ManagementRow href="/admin/support?status=open" icon={<AlertCircle size={15} />} title="Open Tickets"   subtitle={`${stats.support.open} need attention`} accent="#10B981" />
-              <ManagementRow href="/admin/support"             icon={<Eye        size={15} />} title="All Tickets"    subtitle="View full ticket history"               accent="white" />
+              <ManagementRow href="/admin/support?status=open" icon={<AlertCircle size={15} />} title="Open Tickets" subtitle={`${stats.support.open} need attention`} accent="#10B981" />
+              <ManagementRow href="/admin/support"             icon={<Eye         size={15} />} title="All Tickets"  subtitle="View full ticket history"               accent="white" />
             </div>
           </div>
-           {/* Blog Management */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
-              <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
-                    <FileText size={18} className="text-orange-400" />
-                  </div>
-                  <h2
-                    className="font-bold text-white text-base sm:text-lg"
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                  >
-                    Blog Management
-                  </h2>
+
+          {/* Blog Management */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-orange-500/15 flex items-center justify-center">
+                  <FileText size={18} className="text-orange-400" />
                 </div>
-                <span className="text-xs text-white/30 bg-white/5 px-3 py-1 rounded-full border border-white/10">
-                  {stats.blog.total} posts
-                </span>
+                <h2 className="font-bold text-white text-base sm:text-lg"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                  Blog Management
+                </h2>
               </div>
-
-              <div className="p-4 space-y-2">
-                <ManagementRow
-                  href="/admin/blog"
-                  icon={<Eye size={15} />}
-                  title="All Posts"
-                  subtitle={`Manage ${stats.blog.total} posts`}
-                  accent="white"
-                />
-
-                <ManagementRow
-                  href="/admin/blog?status=draft"
-                  icon={<Clock size={15} />}
-                  title="Drafts"
-                  subtitle={`${stats.blog.draft} drafts`}
-                  accent="#F59E0B"
-                />
-              </div>
+              <span className="text-xs text-white/30 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                {stats.blog.total} posts
+              </span>
             </div>
-           
-          {/* Referral */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+            <div className="p-4 space-y-2">
+              <ManagementRow href="/admin/blog"              icon={<Eye   size={15} />} title="All Posts" subtitle={`Manage ${stats.blog.total} posts`} accent="white" />
+              <ManagementRow href="/admin/blog?status=draft" icon={<Clock size={15} />} title="Drafts"    subtitle={`${stats.blog.draft} drafts`}       accent="#F59E0B" />
+            </div>
+          </div>
+
+          {/* Referral System */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
             <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center">
                   <Gift size={18} className="text-emerald-400" />
                 </div>
-                <h2
-                  className="font-bold text-white text-base sm:text-lg"
-                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                >
+                <h2 className="font-bold text-white text-base sm:text-lg"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                   Referral System
                 </h2>
               </div>
@@ -424,34 +431,21 @@ export default function AdminDashboard() {
                 {stats.referrals.total} total
               </span>
             </div>
-
             <div className="p-4 space-y-2">
-              <ManagementRow
-                href="/admin/referrals"
-                icon={<TrendingUp size={15} />}
-                title="View Stats"
-                subtitle={`₦${koboToNaira(stats.referrals.totalRewards)} rewards issued`}
-                accent="#2D7A55"
-              />
-
-              <ManagementRow
-                href="/admin/referrals?status=pending"
-                icon={<Clock size={15} />}
-                title="Pending Referrals"
-                subtitle={`${stats.referrals.pending} awaiting purchase`}
-                accent="#F59E0B"
-              />
+              <ManagementRow href="/admin/referrals"                 icon={<TrendingUp size={15} />} title="View Stats"        subtitle={`₦${koboToNaira(stats.referrals.totalRewards)} rewards issued`} accent="#2D7A55" />
+              <ManagementRow href="/admin/referrals?status=pending"  icon={<Clock      size={15} />} title="Pending Referrals" subtitle={`${stats.referrals.pending} awaiting purchase`}                  accent="#F59E0B" />
             </div>
           </div>
-          
-           <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
+
+          {/* Withdrawals */}
+          <div className="rounded-2xl border border-white/10 bg-white/5 overflow-hidden">
             <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-white/10">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center">
                   <Wallet size={18} className="text-emerald-400" />
                 </div>
                 <h2 className="font-bold text-white text-base sm:text-lg"
-                    style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                   Withdrawals
                 </h2>
               </div>
@@ -462,24 +456,55 @@ export default function AdminDashboard() {
               )}
             </div>
             <div className="p-4 space-y-2">
+              <ManagementRow href="/admin/withdrawals?status=pending" icon={<Clock  size={15} />} title="Pending Withdrawals" subtitle={`${stats.withdrawals.pending} awaiting approval`} accent="#F59E0B" highlight={stats.withdrawals.pending > 0} />
+              <ManagementRow href="/admin/withdrawals"                icon={<Wallet size={15} />} title="All Withdrawals"     subtitle="Full withdrawal history"                         accent="white" />
+            </div>
+          </div>
+
+          {/* ── Live Support (new) ── */}
+          <div className="rounded-2xl border border-emerald-500/20 bg-white/5 overflow-hidden">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-5 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/15 flex items-center justify-center">
+                  <HeadphonesIcon size={18} className="text-emerald-400" />
+                </div>
+                <h2 className="font-bold text-white text-base sm:text-lg"
+                  style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                  Live Support
+                </h2>
+              </div>
+              {stats.liveChat.queued > 0 ? (
+                <span className="flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  {stats.liveChat.queued} in queue
+                </span>
+              ) : (
+                <span className="text-xs text-white/30 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                  Queue empty
+                </span>
+              )}
+            </div>
+            <div className="p-4 space-y-2">
               <ManagementRow
-                href="/admin/withdrawals?status=pending"
-                icon={<Clock size={15} />}
-                title="Pending Withdrawals"
-                subtitle={`${stats.withdrawals.pending} awaiting approval`}
-                accent="#F59E0B"
-                highlight={stats.withdrawals.pending > 0}
+                href="/admin/live-chat"
+                icon={<HeadphonesIcon size={15} />}
+                title="Open Agent Dashboard"
+                subtitle="Handle live customer chats"
+                accent="#10B981"
+                highlight={stats.liveChat.queued > 0}
               />
               <ManagementRow
-                href="/admin/withdrawals"
-                icon={<Wallet size={15} />}
-                title="All Withdrawals"
-                subtitle="Full withdrawal history"
-                accent="white"
+                href="/admin/live-chat"
+                icon={<Clock size={15} />}
+                title="Queue"
+                subtitle={`${stats.liveChat.queued} waiting · ${stats.liveChat.active} active`}
+                accent="#F59E0B"
               />
             </div>
           </div>
+
         </div>
+
         {/* Quick Actions */}
         <div className="rounded-2xl p-5 sm:p-6 relative overflow-hidden"
           style={{ background: "linear-gradient(135deg, #1a3a2a 0%, #0D1F1A 100%)", border: "1px solid rgba(200,135,58,0.2)" }}>
@@ -491,13 +516,14 @@ export default function AdminDashboard() {
               style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
               Quick Actions
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
               {[
-                { href: "/admin/lands/create",        icon: <Plus size={20} />,          label: "Add Land",     accent: "#C8873A" },
-                { href: "/admin/kyc?status=pending",  icon: <ShieldCheck size={20} />,   label: "Review KYC",   accent: "#8B5CF6" },
-                { href: "/admin/users",               icon: <Users size={20} />,          label: "Manage Users", accent: "#06B6D4" },
-                { href: "/admin/support?status=open", icon: <MessageSquare size={20} />, label: "Open Tickets", accent: "#10B981" },
-                { href: "/admin/withdrawals?status=pending", icon: <Wallet size={20} />, label: "Withdrawals", accent: "#2D7A55" },
+                { href: "/admin/lands/create",               icon: <Plus            size={20} />, label: "Add Land",     accent: "#C8873A" },
+                { href: "/admin/kyc?status=pending",         icon: <ShieldCheck     size={20} />, label: "Review KYC",   accent: "#8B5CF6" },
+                { href: "/admin/users",                      icon: <Users           size={20} />, label: "Manage Users", accent: "#06B6D4" },
+                { href: "/admin/support?status=open",        icon: <MessageSquare   size={20} />, label: "Open Tickets", accent: "#2D7A55" },
+                { href: "/admin/withdrawals?status=pending", icon: <Wallet          size={20} />, label: "Withdrawals",  accent: "#2D7A55" },
+                { href: "/admin/live-chat",                  icon: <HeadphonesIcon  size={20} />, label: "Live Chat",    accent: "#10B981" },
               ].map((action) => (
                 <Link key={action.label} href={action.href}
                   className="flex flex-col items-center gap-2.5 p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:-translate-y-1 transition-all text-center group">
