@@ -8,7 +8,7 @@ import {
   Clock, XCircle, AlertCircle, Bot, Search, RefreshCw,
   User, MailOpen, Sparkles, ChevronRight, FileText,
   Shield, CreditCard, Landmark, TrendingUp, MoreHorizontal,
-  Download, Image as ImageIcon, Film, X,
+  Download, Image as ImageIcon, Film, X, UserCheck,
 } from "lucide-react";
 import {
   fetchTickets, fetchTicket, createTicket, createGuestTicket,
@@ -17,6 +17,7 @@ import {
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../utils/api";
+import LiveChatView from "./LiveChatView";
 
 /* ── Design tokens ─────────────────────────────────────────────────────────── */
 const BG        = "#0A1A13";
@@ -244,6 +245,7 @@ export default function SupportPage() {
 
   const authTabs  = [
     { id: "chat",    icon: <Bot size={14} />,        label: "AI Chat"    },
+    { id: "live",    icon: <UserCheck size={14} />,   label: "Live Agent"}, 
     { id: "list",    icon: <Ticket size={14} />,     label: "My Tickets" },
     { id: "new",     icon: <Plus size={14} />,        label: "New Ticket" },
     { id: "faq",     icon: <HelpCircle size={14} />,  label: "FAQ"        },
@@ -321,13 +323,14 @@ export default function SupportPage() {
           ))}
         </div>
 
-        {/* ── Views ── */}
-        {view === "chat"    && <AiChatView />}
-        {view === "list"    && <TicketList onOpen={openDetail} onNew={() => setView("new")} />}
-        {view === "new"     && <NewTicketForm onSuccess={(id) => { setSelectedId(id); setView("detail"); }} />}
-        {view === "detail"  && <TicketDetail id={selectedId} onBack={() => setView("list")} />}
-        {view === "faq"     && <FaqView onContact={() => setView("contact")} />}
-        {view === "contact" && <GuestContactForm />}
+       {/* ── Views ── */}
+      {view === "chat"    && <AiChatView />}
+      {view === "live"    && <LiveChatView onSwitchToAi={() => setView("chat")} />}
+      {view === "list"    && <TicketList onOpen={openDetail} onNew={() => setView("new")} />}
+      {view === "new"     && <NewTicketForm onSuccess={(id) => { setSelectedId(id); setView("detail"); }} />}
+      {view === "detail"  && <TicketDetail id={selectedId} onBack={() => setView("list")} />}
+      {view === "faq"     && <FaqView onContact={() => setView("contact")} />}
+      {view === "contact" && <GuestContactForm />}
       </div>
     </div>
   );
@@ -1164,14 +1167,25 @@ function AiChatView() {
         <div className="flex-1 min-w-0">
           <p className="font-bold text-white text-sm leading-none">AI Support Assistant</p>
           <p className="text-[11px] mt-0.5 truncate" style={{ color: DIMMED }}>
-           Replies instantly
+            Replies instantly
           </p>
         </div>
+        {/* ← ADD THIS: human handoff button */}
+        <button
+          onClick={() => document.querySelector("[data-tab='live']")?.click()}
+          className="hidden sm:flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl transition-all shrink-0"
+          style={{ color: MUTED, border: `1px solid ${BORDER}` }}
+          onMouseEnter={e => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = BORDER_HV; }}
+          onMouseLeave={e => { e.currentTarget.style.color = MUTED; e.currentTarget.style.borderColor = BORDER; }}
+        >
+          <UserCheck size={12} /> Human agent
+        </button>
         <div className="flex items-center gap-1.5 text-xs font-semibold shrink-0" style={{ color: "#34D399" }}>
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           <span className="hidden sm:inline">Online</span>
         </div>
       </div>
+
 
       {/* ── Quick reply chips ── */}
       {chipsVisible && (
