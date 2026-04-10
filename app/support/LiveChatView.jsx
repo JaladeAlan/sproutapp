@@ -46,6 +46,7 @@ function getPusher() {
       forceTLS:          process.env.NEXT_PUBLIC_REVERB_SCHEME === "https",
       enabledTransports: ["ws", "wss"],
       disableStats:      true,
+      cluster:           process.env.NEXT_PUBLIC_REVERB_CLUSTER,
       authEndpoint:      `${process.env.NEXT_PUBLIC_API_URL}/broadcasting/auth`,
       auth: {
         headers: {
@@ -90,6 +91,49 @@ export default function LiveChatView({ onSwitchToAi, initialTicket = null }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, agentTyping]);
+
+  // ── Check for existing live chat session on mount ────────────────────────────
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      try {
+        const res = await api.get("/support/tickets");
+        const tickets = res.data?.data?.data ?? res.data?.data ?? [];
+
+        // Find the most recent live chat ticket that's still active
+        const existing = tickets.find(t =>
+          t.chat_mode === "live" &&
+          ["open", "waiting"].includes(t.status)
+        );
+
+        if (!existing) return;
+
+        // Fetch full ticket with messages
+        const full = await api.get(`/support/tickets/${existing.id}`);
+        const ticketData = full.data?.data;
+
+        if (!ticketData) return;
+
+        setTicket({ id: ticketData.id, reference: ticketData.reference });
+        setMessages(ticketData.messages ?? []);
+
+        if (ticketData.agent_id) {
+          // Already claimed by an agent
+          setAgentName(ticketData.agent?.name ?? "Support Agent");
+          setPhase("chat");
+        } else {
+          // Still in queue
+          setQueuePos(1);
+          setPhase("queued");
+        }
+      } catch {
+        // Silently fail — just show the request form
+      }
+    };
+
+    if (!initialTicket) {
+      checkExistingSession();
+    }
+  }, [initialTicket]);
 
   // ── Subscribe to WebSocket channel once ticket exists ───────────────────────
   useEffect(() => {

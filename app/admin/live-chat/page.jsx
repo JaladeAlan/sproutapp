@@ -66,10 +66,10 @@ function useEcho() {
       echoRef.current = new Echo({
         broadcaster:       "reverb",
         key:               process.env.NEXT_PUBLIC_PUSHER_KEY,
-        wsHost:            process.env.NEXT_PUBLIC_PUSHER_HOST,
-        wsPort:            Number(process.env.NEXT_PUBLIC_PUSHER_PORT || 80),
-        wssPort:           Number(process.env.NEXT_PUBLIC_PUSHER_PORT || 443),
-        forceTLS:          process.env.NEXT_PUBLIC_PUSHER_SCHEME === "https",
+        wsHost:            process.env.NEXT_PUBLIC_REVERB_HOST,
+        wsPort:            Number(process.env.NEXT_PUBLIC_REVERB_PORT || 80),
+        wssPort:           Number(process.env.NEXT_PUBLIC_REVERB_PORT || 443),
+        forceTLS:          process.env.NEXT_PUBLIC_REVERB_SCHEME === "https",
         enabledTransports: ["ws", "wss"],
         disableStats:      true,
         authEndpoint:      `${process.env.NEXT_PUBLIC_API_URL}/broadcasting/auth`,
@@ -100,6 +100,7 @@ function QueueItem({ ticket, isActive, onClick }) {
   const waitMins = ticket.created_at
     ? Math.floor((Date.now() - new Date(ticket.created_at)) / 60000)
     : 0;
+  const isClaimed = !!ticket.agent_id;
 
   return (
     <button
@@ -116,9 +117,21 @@ function QueueItem({ ticket, isActive, onClick }) {
         <p className="text-sm font-semibold text-white/85 truncate leading-tight">
           {ticket.user?.name || "Unknown User"}
         </p>
-        <span className="text-[10px] text-white/25 shrink-0 mt-0.5">
-          {waitMins < 1 ? "just now" : `${waitMins}m`}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Active vs queued badge */}
+          {isClaimed ? (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-400">
+              ACTIVE
+            </span>
+          ) : (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-400">
+              QUEUED
+            </span>
+          )}
+          <span className="text-[10px] text-white/25">
+            {waitMins < 1 ? "just now" : `${waitMins}m`}
+          </span>
+        </div>
       </div>
       <p className="text-xs text-white/40 truncate mb-2">{ticket.subject}</p>
       <div className="flex items-center gap-2">
@@ -510,26 +523,39 @@ export default function AgentChatPage() {
                 <p className="text-[11px] text-white/15 mt-1">No customers waiting</p>
               </div>
             ) : (
-              queue.map((ticket) => (
-                <QueueItem
-                  key={ticket.id}
-                  ticket={ticket}
-                  isActive={activeTicket?.id === ticket.id}
-                  onClick={() => handleSelectQueueMobile(ticket)}
-                />
-              ))
+              <>
+                {/* Queued tickets */}
+                {queue.filter(t => !t.agent_id).length > 0 && (
+                  <div className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-amber-500/50">
+                    Waiting
+                  </div>
+                )}
+                {queue.filter(t => !t.agent_id).map((ticket) => (
+                  <QueueItem
+                    key={ticket.id}
+                    ticket={ticket}
+                    isActive={activeTicket?.id === ticket.id}
+                    onClick={() => handleSelectQueueMobile(ticket)}
+                  />
+                ))}
+
+                {/* Active tickets */}
+                {queue.filter(t => !!t.agent_id).length > 0 && (
+                  <div className="px-4 py-2 text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500/50 border-t border-white/[0.04] mt-1">
+                    Active Chats
+                  </div>
+                )}
+                {queue.filter(t => !!t.agent_id).map((ticket) => (
+                  <QueueItem
+                    key={ticket.id}
+                    ticket={ticket}
+                    isActive={activeTicket?.id === ticket.id}
+                    onClick={() => handleSelectQueueMobile(ticket)}
+                  />
+                ))}
+              </>
             )}
           </div>
-          {/* Mobile: if there's an active chat, show a return-to-chat button at bottom */}
-          {activeTicket && (
-            <button
-              onClick={() => setMobilePanel("chat")}
-              className="sm:hidden mx-4 mb-4 mt-2 flex items-center justify-center gap-2 py-3 rounded-2xl text-sm font-bold text-[#0A1A13]"
-              style={{ background: "linear-gradient(135deg, #C8873A, #E8A850)" }}>
-              <MessageSquare size={14} />
-              Back to chat · {activeTicket.user?.name}
-            </button>
-          )}
         </div>
 
         {/* ── Chat area — full screen on mobile, flex-1 on desktop ── */}
