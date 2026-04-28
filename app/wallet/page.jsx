@@ -11,8 +11,8 @@ import {
   WifiOff, RefreshCw, ServerCrash,
 } from "lucide-react";
 
-const FEE_PERCENT  = 2;
-const FEE_CAP      = 3000;
+const FEE_PERCENT   = 2;
+const FEE_CAP       = 3000;
 const QUICK_AMOUNTS = [1000, 5000, 10000, 50000];
 
 const GATEWAYS = [
@@ -37,6 +37,21 @@ const GATEWAYS = [
         <circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15" />
         <path d="M7 12h10M7 8.5h6M7 15.5h8" stroke="currentColor" strokeWidth="1.8"
           strokeLinecap="round" opacity=".8" />
+      </svg>
+    ),
+  },
+  {
+    id: "opay",
+    label: "OPay",
+    description: "OPay wallet & card",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5" aria-hidden>
+        <circle cx="12" cy="12" r="10" fill="currentColor" opacity=".15" />
+        <path
+          d="M12 7a5 5 0 100 10A5 5 0 0012 7zm0 2a3 3 0 110 6 3 3 0 010-6z"
+          fill="currentColor" opacity=".7"
+        />
+        <circle cx="12" cy="12" r="1.2" fill="currentColor" />
       </svg>
     ),
   },
@@ -119,12 +134,20 @@ export default function WalletPage() {
     const amountNaira = Number(depositAmount);
     if (!Number.isInteger(amountNaira) || amountNaira < 1000)
       return toast.error("Minimum deposit is ₦1,000");
+
     setLoading("deposit");
+
     try {
-      const res = await api.post("/deposit", { amount: amountNaira * 100, gateway });
+      const res = await api.post("/deposit", {
+        amount: amountNaira * 100, // always send in kobo
+        gateway,                   // "opay" | "monnify" | "paystack"
+      });
+
       if (res.data.payment_url) {
-        toast.success(`Redirecting to ${gateway}…`);
+        toast.success(`Redirecting to ${GATEWAYS.find((g) => g.id === gateway)?.label ?? gateway}…`);
         setTimeout(() => window.location.assign(res.data.payment_url), 400);
+      } else {
+        toast.error("No payment URL received. Please try again.");
       }
     } catch (err) {
       handleApiError(err);
@@ -139,6 +162,7 @@ export default function WalletPage() {
       return toast.error("Minimum withdrawal is ₦1,000");
     if (amountNaira > balance / 100) return toast.error("Insufficient balance");
     if (!/^\d{4}$/.test(pin))        return toast.error("PIN must be 4 digits");
+
     setLoading("withdraw");
     try {
       const res = await api.post("/withdraw", {
@@ -227,7 +251,7 @@ export default function WalletPage() {
               : "Unable to load your wallet. Please check your connection and try again."}
           </p>
           {isServer && serverError && (
-            <p className="text-red-400/70 text-xs font-mono mb-6 px-3 py-2 rounded-lg bg-red-500/5 border border-red-500/10 break-words">
+            <p className="text-red-400/70 text-xs font-mono mb-6 px-3 py-2 rounded-lg bg-red-500/5 border border-red-500/10 wrap-break-word">
               {serverError}
             </p>
           )}
@@ -357,6 +381,17 @@ export default function WalletPage() {
                       );
                     })}
                   </div>
+
+                  {/* OPay info banner – shown only when OPay is selected */}
+                  {gateway === "opay" && (
+                    <div className="mt-3 flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                      <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-500/70 leading-relaxed">
+                        You'll be redirected to the OPay secure payment page to complete your
+                        deposit. Your wallet will be credited automatically once the payment is confirmed.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Amount */}
@@ -503,9 +538,10 @@ export default function WalletPage() {
                   return (
                     <div
                       key={t.reference ?? i}
-                      className="rounded-xl border border-white/[0.07] bg-white/[0.03] hover:border-white/[0.12] hover:bg-white/[0.05] transition-all p-3 sm:p-4"
+                      className="rounded-xl border border-white/[0.07] bg-white/3 hover:border-white/12 hover:bg-white/5 transition-all p-3 sm:p-4"
                     >
                       <div className="flex items-start gap-3">
+                        {/* Gateway badge */}
                         <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
                           isDeposit ? "bg-emerald-500/10" : "bg-blue-500/10"
                         }`}>
@@ -516,6 +552,12 @@ export default function WalletPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-sm font-bold text-white leading-none">{t.type}</p>
+                            {/* Show gateway tag when present */}
+                            {t.gateway && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/5 border border-white/10 text-white/30 uppercase tracking-wide">
+                                {t.gateway}
+                              </span>
+                            )}
                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold border ${statusStyle}`}>
                               {getStatusIcon(t.status)}
                               {t.status}
