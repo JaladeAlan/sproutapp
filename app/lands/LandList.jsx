@@ -611,8 +611,8 @@ export default function LandList() {
                     <div className="flex gap-2">
                       {/* View Details — always public */}
                       <Link
-                        href={`/land/${land.id}`}
-                        className="flex-1 py-2.5 rounded-xl text-sm font-bold text-center text-[#0D1F1A] transition-all hover:scale-[1.02] active:scale-[0.98]"
+                        href={`/lands/${land.id}`}
+                        className="flex-1 py-2.5 rounded-xl tx`ext-sm font-bold text-center text-[#0D1F1A] transition-all hover:scale-[1.02] active:scale-[0.98]"
                         style={{ background: "linear-gradient(135deg, #C8873A 0%, #E8A850 100%)" }}
                       >
                         View Details
